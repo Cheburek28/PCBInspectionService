@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@0.33.1
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -44,7 +44,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - run: docker build -f docker/Dockerfile -t pcbis:scan .
-      - uses: aquasecurity/trivy-action@0.33.1
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: pcbis:scan
           severity: CRITICAL,HIGH
