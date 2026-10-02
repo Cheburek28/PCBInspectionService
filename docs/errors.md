@@ -31,6 +31,10 @@ Branch on `code`, never on `title`/`detail` (human text, may change).
 ### no_transform
 `409` — the photo was not aligned with the reference (`ALIGNMENT_FAILED`), so a region cannot be mapped.
 
+### conflict
+`409` — a parallel request changed the same resource at the same moment. Safe to retry the request
+(with the same `Idempotency-Key` for submissions).
+
 ### payload_too_large
 `413` — upload exceeds `PCBIS_MAX_UPLOAD_MB`.
 

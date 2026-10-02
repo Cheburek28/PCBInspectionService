@@ -8,8 +8,16 @@ from pcb_inspection import synthetic as sy
 from pcb_inspection.engine.base import InspectParams, MaskSpec, MaskStrategy, PreparedReference
 from pcb_inspection.engine.classic.engine import ClassicEngine
 from pcb_inspection.engine.imaging import BGRImage, encode_jpeg
+from pcb_inspection.settings import Settings, get_settings
 
 WORK_WIDTH = 1200  # synthetic boards are 1200 px wide; keeps tests fast
+
+
+@pytest.fixture(autouse=True)
+def _ignore_local_env_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests must not depend on a developer's .env (e.g. PCBIS_DEFAULT_MASK_STRATEGY=blue_fixture)."""
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
+    get_settings.cache_clear()
 
 
 @dataclass(frozen=True)

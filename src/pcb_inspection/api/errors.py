@@ -8,6 +8,7 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from pcb_inspection.domain.errors import AppError
@@ -52,6 +53,18 @@ def install(app: FastAPI) -> None:
     async def _blob_missing(request: Request, exc: BlobNotFound) -> JSONResponse:
         log.error("storage.blob_missing", key=str(exc))
         return problem(request, 404, "NOT_FOUND", "Resource not found", "stored file is missing")
+
+    @app.exception_handler(IntegrityError)
+    async def _conflict(request: Request, exc: IntegrityError) -> JSONResponse:
+        # safety net: a concurrent change we did not anticipate is a retryable conflict, not a server bug
+        log.warning("db.integrity_conflict", error=str(exc.orig))
+        return problem(
+            request,
+            409,
+            "CONFLICT",
+            "Concurrent modification",
+            "the resource was changed by a parallel request; retry the request",
+        )
 
     @app.exception_handler(RequestValidationError)
     async def _validation(request: Request, exc: RequestValidationError) -> JSONResponse:

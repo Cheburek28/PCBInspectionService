@@ -7,6 +7,7 @@ import uuid
 import cv2
 import numpy as np
 from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from pcb_inspection.db.models import Board, Image, Inspection, Reference
@@ -24,7 +25,7 @@ from pcb_inspection.engine.base import MaskNotFoundError, MaskSpec, MaskStrategy
 from pcb_inspection.engine.geometry import project_points
 from pcb_inspection.services import images
 from pcb_inspection.services.context import ServiceContext
-from pcb_inspection.services.sessions import load_session
+from pcb_inspection.services.sessions import load_session, lock_session
 
 
 def create_from_upload(
@@ -134,6 +135,9 @@ def _create(
         board_id=board_id,
         is_active=True,
     )
+    # the expensive part (mask, resize) is done; now swap the active reference under the session lock,
+    # otherwise two parallel uploads for one side both insert an "active" row
+    lock_session(s, session_id)
     s.execute(
         update(Reference)
         .where(Reference.session_id == session_id, Reference.side == side, Reference.is_active)
@@ -157,10 +161,21 @@ def _upsert_board(
 def upsert_board(
     s: Session, session_id: uuid.UUID, board_key: str, barcode: str | None, serial: str | None
 ) -> Board:
-    board = s.scalar(select(Board).where(Board.session_id == session_id, Board.board_key == board_key))
-    if board is None:
-        board = Board(session_id=session_id, board_key=board_key)
-        s.add(board)
+    """Get or create the board. Safe under concurrency: clients send both sides of a board in parallel.
+
+    INSERT ... ON CONFLICT DO NOTHING waits for a concurrent insert of the same key to commit instead of
+    failing; the following SELECT then sees that row.
+    """
+    s.execute(
+        pg_insert(Board)
+        .values(id=uuid7(), session_id=session_id, board_key=board_key)
+        .on_conflict_do_nothing(index_elements=["session_id", "board_key"])
+    )
+    board = s.scalars(
+        select(Board)
+        .where(Board.session_id == session_id, Board.board_key == board_key)
+        .execution_options(populate_existing=True)
+    ).one()
     if barcode is not None:
         board.barcode = barcode
     if serial is not None:

@@ -45,6 +45,14 @@ def load_session(s: Session, session_id: uuid.UUID, *, require_open: bool = Fals
     return session
 
 
+def lock_session(s: Session, session_id: uuid.UUID) -> None:
+    """Row lock on the session until the transaction ends: serialises changes of its active references.
+
+    Only the id column is selected, so no outer joins (FOR UPDATE cannot lock the nullable side of one).
+    """
+    s.execute(select(InspectionSession.id).where(InspectionSession.id == session_id).with_for_update())
+
+
 def get_session(ctx: ServiceContext, session_id: uuid.UUID) -> InspectionSession:
     with ctx.db.session() as s:
         return load_session(s, session_id)
