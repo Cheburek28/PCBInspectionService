@@ -1,0 +1,131 @@
+# Production stack on a single VPS. See docs/deployment.md.
+#   cp .env.example .env && edit
+#   docker compose -f compose.prod.yaml up -d
+name: pcbis
+
+x-app: &app
+  image: ghcr.io/cheburek28/pcbinspectionservice:${PCBIS_VERSION:-latest}
+  restart: unless-stopped
+  env_file: .env
+  environment: &app-env
+    PCBIS_DATABASE_URL: postgresql+psycopg://pcbis:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/pcbis
+    PCBIS_REDIS_URL: redis://redis:6379/0
+    PCBIS_STORAGE_PATH: /data
+  volumes:
+    - blobdata:/data
+  logging: &logging
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pcbis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: pcbis
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcbis"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: *logging
+
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: ["api"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    <<: *app
+    command: ["worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "${PCBIS_WORKER_CPUS:-3}"
+          memory: ${PCBIS_WORKER_MEMORY:-6g}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      PCBIS_DOMAIN: ${PCBIS_DOMAIN:?set PCBIS_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - api
+    logging: *logging
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          f=/backups/pcbis-$$(date +%Y%m%d-%H%M%S).sql.gz
+          pg_dump -h postgres -U pcbis pcbis | gzip > "$$f" && echo "backup written: $$f"
+          find /backups -name 'pcbis-*.sql.gz' -mtime +$$BACKUP_KEEP_DAYS -delete
+          sleep 86400
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+
+volumes:
+  pgdata:
+  redisdata:
+  blobdata:
+  caddydata:
+  caddyconfig:

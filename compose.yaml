@@ -1,0 +1,89 @@
+# Development stack: `make up` → API on http://localhost:8000/docs
+name: pcbis
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: pcbis:dev
+  environment: &app-env
+    PCBIS_DATABASE_URL: postgresql+psycopg://pcbis:pcbis@postgres:5432/pcbis
+    PCBIS_REDIS_URL: redis://redis:6379/0
+    PCBIS_STORAGE_PATH: /data
+    PCBIS_LOG_FORMAT: ${PCBIS_LOG_FORMAT:-console}
+    PCBIS_ENGINE_WORK_WIDTH: ${PCBIS_ENGINE_WORK_WIDTH:-3000}
+    PCBIS_GATE_MIN_WIDTH: ${PCBIS_GATE_MIN_WIDTH:-1500}
+  volumes:
+    - blobdata:/data
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pcbis
+      POSTGRES_PASSWORD: pcbis
+      POSTGRES_DB: pcbis
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${PCBIS_PG_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcbis"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    command: ["migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: ["api"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    <<: *app
+    command: ["worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  minio:
+    profiles: ["s3"]
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: pcbis
+      MINIO_ROOT_PASSWORD: pcbis-secret
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+
+volumes:
+  pgdata:
+  blobdata:

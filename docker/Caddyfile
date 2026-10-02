@@ -1,0 +1,18 @@
+{$PCBIS_DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 30MB
+	}
+	# metrics stay inside the compose network
+	@internal path /metrics
+	respond @internal 404
+	reverse_proxy api:8000 {
+		transport http {
+			read_timeout 90s
+		}
+	}
+	log {
+		output stdout
+		format json
+	}
+}

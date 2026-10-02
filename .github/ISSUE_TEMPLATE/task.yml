@@ -1,0 +1,26 @@
+name: Task (ready for an agent or a human)
+description: A self-contained change with verifiable acceptance criteria
+labels: [task]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this is needed; links to docs/ADRs.
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: Each line becomes a test.
+      placeholder: |
+        - [ ] GET /api/v1/... returns ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: input
+    id: modules
+    attributes:
+      label: Modules touched
+      placeholder: engine/classic, services/inspections, api/routers
