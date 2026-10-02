@@ -50,7 +50,7 @@ def _settings(**kw: object) -> Settings:
 
 def test_effective_params_defaults() -> None:
     snap = effective_params(_settings(), None)
-    assert snap["engine"]["threshold"] == 12.0
+    assert snap["engine"]["threshold"] == 20.0
     assert snap["gates"]["max_differences"] == 60
     assert engine_params(snap).work_width == 3000
     assert gate_thresholds(snap).min_inliers == 50

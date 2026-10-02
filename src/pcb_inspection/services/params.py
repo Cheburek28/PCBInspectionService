@@ -10,7 +10,17 @@ from pcb_inspection.domain.gates import QualityThresholds
 from pcb_inspection.engine.base import InspectParams
 from pcb_inspection.settings import Settings
 
-ENGINE_OVERRIDABLE = frozenset({"threshold", "min_area", "tol_px"})
+ENGINE_OVERRIDABLE = frozenset(
+    {
+        "threshold",
+        "extent_threshold",
+        "min_area",
+        "tol_px",
+        "highlight_clip",
+        "open_radius",
+        "background_sigma",
+    }
+)
 GATE_OVERRIDABLE = frozenset(
     {
         "min_sharpness_ratio",

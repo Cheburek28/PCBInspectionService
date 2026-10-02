@@ -1,4 +1,4 @@
-"""classic-diff: registration + tolerant colour difference against a single reference."""
+"""classic-diff: board-anchored registration + normalised tolerant colour difference, one reference."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ from pcb_inspection.engine.imaging import BGRImage, resize_to_width
 SAME_IMAGE_MAD = 1.0
 # differing regions are excluded from the sharpness measurement with this margin (working pixels)
 SHARPNESS_PAD = 10
+FEATURE_MARGIN_KERNEL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (121, 121))
 
 
 class _Timer:
@@ -44,7 +45,7 @@ class _Timer:
 
 class ClassicEngine:
     name = "classic-diff"
-    version = "0.1.0"
+    version = "0.2.0"
 
     def prepare_reference(self, image: BGRImage, mask_spec: MaskSpec, work_width: int) -> PreparedReference:
         # never upscale: it adds no detail and would change the meaning of pixel-based thresholds
@@ -62,7 +63,11 @@ class ClassicEngine:
         cached = ref.features
         if isinstance(cached, al.Features):
             return cached
-        features = al.detect(ref.image, n_features)
+        # keypoints only on (and just around) the board: the fixture seen through the slots and the panel
+        # may shift relative to the board between photos and must not drive the alignment
+        features = al.detect(
+            ref.image, n_features, np.asarray(cv2.dilate(ref.mask, FEATURE_MARGIN_KERNEL), np.uint8)
+        )
         ref.features = features
         return features
 
@@ -96,8 +101,15 @@ class ClassicEngine:
             if same:
                 dmap = np.zeros(ref.image.shape[:2], np.float32)
             else:
-                dmap = diff.diff_map(ref.image, compared, params.tol_px)
-            regions, heat = diff.find_regions(dmap, ref.mask, params.threshold, params.min_area)
+                dmap = diff.diff_map(
+                    ref.image,
+                    compared,
+                    params.tol_px,
+                    diff.Normalisation(params.highlight_clip, params.open_radius, params.background_sigma),
+                )
+            regions, heat = diff.find_regions(
+                dmap, ref.mask, params.threshold, params.min_area, params.extent_threshold
+            )
         with timer.stage("quality"):
             sharp_ratio = self._sharpness_ratio(ref, test_work, ref_to_test_work, regions)
         ref_to_test_up = scale_matrix(1 / test_scale) @ ref_to_test_work @ scale_matrix(ref.scale)

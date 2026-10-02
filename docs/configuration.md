@@ -40,9 +40,13 @@ Read by the container entrypoint only:
 |---|---|---|
 | `PCBIS_ENGINE` | `classic-diff` | no |
 | `PCBIS_ENGINE_WORK_WIDTH` | 3000 | no |
-| `PCBIS_ENGINE_THRESHOLD` | 12.0 | `threshold` |
+| `PCBIS_ENGINE_THRESHOLD` | 20.0 | `threshold` |
+| `PCBIS_ENGINE_EXTENT_THRESHOLD` | 12.0 | `extent_threshold` |
 | `PCBIS_ENGINE_MIN_AREA` | 40 | `min_area` |
 | `PCBIS_ENGINE_TOL_PX` | 2 | `tol_px` |
+| `PCBIS_ENGINE_HIGHLIGHT_CLIP` | 100 | `highlight_clip` |
+| `PCBIS_ENGINE_OPEN_RADIUS` | 4 | `open_radius` |
+| `PCBIS_ENGINE_BACKGROUND_SIGMA` | 20.0 | `background_sigma` |
 | `PCBIS_DEFAULT_MASK_STRATEGY` | `full_frame` | per reference (`mask_strategy`) |
 
 ## Quality gates

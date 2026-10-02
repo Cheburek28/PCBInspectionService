@@ -42,9 +42,13 @@ class Settings(BaseSettings):
 
     engine: str = "classic-diff"
     engine_work_width: int = 3000
-    engine_threshold: float = 12.0
+    engine_threshold: float = 20.0
+    engine_extent_threshold: float = 12.0
     engine_min_area: int = 40
     engine_tol_px: int = 2
+    engine_highlight_clip: int = Field(default=100, ge=0, le=255)
+    engine_open_radius: int = Field(default=4, ge=0)
+    engine_background_sigma: float = Field(default=20.0, ge=0)
     default_mask_strategy: MaskStrategy = MaskStrategy.FULL_FRAME
 
     gate_min_width: int = 1500
@@ -63,8 +67,12 @@ class Settings(BaseSettings):
         return InspectParams(
             work_width=self.engine_work_width,
             threshold=self.engine_threshold,
+            extent_threshold=self.engine_extent_threshold,
             min_area=self.engine_min_area,
             tol_px=self.engine_tol_px,
+            highlight_clip=self.engine_highlight_clip,
+            open_radius=self.engine_open_radius,
+            background_sigma=self.engine_background_sigma,
         )
 
     def thresholds(self) -> QualityThresholds:

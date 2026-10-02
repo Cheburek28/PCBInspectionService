@@ -34,11 +34,16 @@ class MaskNotFoundError(ValueError):
 @dataclass(frozen=True, slots=True)
 class InspectParams:
     work_width: int = 3000
-    threshold: float = 12.0
+    threshold: float = 20.0  # report a region when its peak difference reaches this
+    extent_threshold: float = 12.0  # region outline (and area) is where the difference exceeds this
     min_area: int = 40
     tol_px: int = 2
     color_match: bool = True
     sift_features: int = 6000
+    # normalisation applied to both images before comparing (working pixels / 8-bit Lab L):
+    highlight_clip: int = 100  # lightness above this is treated as equal (glare on solder); 255 = off
+    open_radius: int = 4  # morphological opening removes thin bright strokes (markings); 0 = off
+    background_sigma: float = 20.0  # subtract local mean lightness (body tone, uneven light); 0 = off
 
 
 @dataclass(slots=True)

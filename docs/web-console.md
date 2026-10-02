@@ -23,7 +23,7 @@ Open `http://localhost:8000/ui` (production: `https://<domain>/ui`). Login sets 
 |---|---|
 | **Сравнение** (`/ui/`) | Upload a reference and a photo, set parameters (empty = server default), choose the mask, run |
 | **История** (`/ui/inspections`) | Every inspection, newest first; filter by source (console / API stations), status, product |
-| **Проверка** (`/ui/inspections/{id}`) | Photo with numbered boxes; switch to reference, aligned photo or heatmap; click a box → reference vs. photo crop, accept / reject; quality metrics, timings and the parameters used; **re-run** with other parameters |
+| **Проверка** (`/ui/inspections/{id}`) | Photo with numbered boxes; switch to reference, inspected-area mask, aligned photo or heatmap; click a box → reference vs. photo crop, accept / reject; quality metrics, timings and the parameters used; **re-run** with other parameters |
 
 Each console run creates its own session (`client_meta.source = "web-ui"`, station `web-ui`), so it never
 supersedes or mixes with inspections from production clients. A re-run uses the same reference and photo

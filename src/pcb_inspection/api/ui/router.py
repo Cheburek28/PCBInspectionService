@@ -44,9 +44,23 @@ class ParamField:
 
 
 PARAM_FIELDS = [
-    ParamField("threshold", "engine", "Порог отличия", "выше → меньше и сильнее области", "0.5"),
+    ParamField(
+        "threshold", "engine", "Порог отличия", "пик отличия, с которого область попадает в отчёт", "0.5"
+    ),
+    ParamField(
+        "extent_threshold", "engine", "Порог границы области", "по нему считаются контур и площадь", "0.5"
+    ),
     ParamField("min_area", "engine", "Мин. площадь, px", "в рабочем разрешении", "1"),
     ParamField("tol_px", "engine", "Допуск сдвига, px", "больше → прячет мелкие сдвиги", "1"),
+    ParamField(
+        "highlight_clip", "engine", "Срез бликов (яркость L)", "ярче — считается одинаковым; 255 = выкл.", "5"
+    ),
+    ParamField(
+        "open_radius", "engine", "Подавление маркировки, px", "убирает тонкие светлые штрихи; 0 = выкл.", "1"
+    ),
+    ParamField(
+        "background_sigma", "engine", "Выравнивание фона, px", "вычитает местную яркость; 0 = выкл.", "1"
+    ),
     ParamField("min_sharpness_ratio", "gates", "Мин. резкость", "относительно эталона", "0.01"),
     ParamField("max_lab_shift_l", "gates", "Макс. сдвиг яркости ΔL", "", "0.5"),
     ParamField("max_lab_shift_ab", "gates", "Макс. сдвиг цвета Δa/Δb", "", "0.5"),
@@ -273,6 +287,15 @@ def reference_image(inspection_id: uuid.UUID, ctx: Ctx) -> Response:
     return Response(
         ctx.storage.get(image.storage_key),
         media_type=image.content_type,
+        headers={"Cache-Control": "private, max-age=86400"},
+    )
+
+
+@router.get("/inspections/{inspection_id}/mask", dependencies=[Login])
+def mask_view(inspection_id: uuid.UUID, ctx: Ctx) -> Response:
+    return Response(
+        media.reference_mask_view(ctx, inspection_id),
+        media_type="image/jpeg",
         headers={"Cache-Control": "private, max-age=86400"},
     )
 

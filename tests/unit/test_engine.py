@@ -71,7 +71,7 @@ def test_removed_component_is_found_in_both_frames(
 def test_several_defects_are_ranked_by_score(
     engine: ClassicEngine, prepared: PreparedReference, scene: Scene, params: InspectParams
 ) -> None:
-    defects = sy.Defects(removed=frozenset({3}), recolored={10: (30, 30, 220)}, blobs=((300, 400, 8),))
+    defects = sy.Defects(removed=frozenset({3}), recolored={10: (30, 30, 220)}, blobs=((300, 400, 10),))
     image, cam = scene.photo(defects)
     r = _run(engine, prepared, image, params)
     for _, truth_test in scene.truth(defects, cam):

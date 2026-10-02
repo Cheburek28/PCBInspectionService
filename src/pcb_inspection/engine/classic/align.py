@@ -32,9 +32,11 @@ class Alignment:
     warped: BGRImage | None  # test in the reference frame (homography + ECC), no optical flow
 
 
-def detect(image: BGRImage, n_features: int) -> Features:
+def detect(image: BGRImage, n_features: int, mask: NDArray[np.uint8] | None = None) -> Features:
+    """SIFT keypoints; with ``mask`` only where mask > 0."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    keypoints, descriptors = cv2.SIFT.create(nfeatures=n_features).detectAndCompute(gray, None)
+    roi = None if mask is None else (mask > 0).astype(np.uint8) * 255
+    keypoints, descriptors = cv2.SIFT.create(nfeatures=n_features).detectAndCompute(gray, roi)
     return Features(tuple(keypoints), None if descriptors is None else np.asarray(descriptors, np.float32))
 
 

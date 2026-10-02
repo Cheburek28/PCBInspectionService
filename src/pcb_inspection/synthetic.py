@@ -21,7 +21,7 @@ SUPERSAMPLE = 2
 BOARD_BGR = (38, 104, 30)
 TRACE_BGR = (60, 150, 50)
 PANEL_BGR = (160, 160, 158)
-SLOT_BGR = (200, 90, 20)  # saturated blue in BGR
+SLOT_BGR = (200, 40, 50)  # saturated blue (HSV hue ~122, like real fixtures)
 COMPONENT_COLORS = {
     "ic": (25, 25, 28),
     "cap": (90, 160, 200),

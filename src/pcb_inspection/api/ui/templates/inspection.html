@@ -49,6 +49,7 @@
       <div class="tabs" id="tabs">
         <button data-view="test" class="on">Проверяемая</button>
         <button data-view="ref">Эталон</button>
+        <button data-view="mask">Маска</button>
         {% if insp.quality and insp.quality.alignment_ok %}
         <button data-view="aligned">Выровненная</button>
         <button data-view="heatmap">Тепловая карта</button>
@@ -121,6 +122,7 @@ let view = "test", selected = null;
 const views = {
   test: {src: `/ui/inspections/${insp.id}/image?kind=original`, w: insp.image.width, h: insp.image.height, box: "bbox_test"},
   ref: {src: `/ui/inspections/${insp.id}/reference`, w: ref.width, h: ref.height, box: "bbox_ref"},
+  mask: {src: `/ui/inspections/${insp.id}/mask`, w: ref.width, h: ref.height, box: "bbox_ref"},
   aligned: {src: `/ui/inspections/${insp.id}/image?kind=aligned`, w: ref.width, h: ref.height, box: "bbox_ref"},
   heatmap: {src: `/ui/inspections/${insp.id}/image?kind=heatmap`, w: ref.width, h: ref.height, box: "bbox_ref"},
 };

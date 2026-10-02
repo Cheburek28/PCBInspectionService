@@ -30,6 +30,15 @@ def inspection_image(ctx: ServiceContext, inspection_id: uuid.UUID, kind: ImageK
     return ctx.storage.get(key), "image/jpeg"
 
 
+def reference_mask_view(ctx: ServiceContext, inspection_id: uuid.UUID) -> bytes:
+    """Reference at working resolution with everything outside the inspected area darkened."""
+    insp = inspections.get(ctx, inspection_id)
+    ref = references.prepared(ctx, insp.reference)
+    view = ref.image.copy()
+    view[ref.mask == 0] //= 4
+    return imaging.encode_jpeg(view, 85)
+
+
 def crop(
     ctx: ServiceContext,
     inspection_id: uuid.UUID,

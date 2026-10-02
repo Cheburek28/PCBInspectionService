@@ -33,7 +33,7 @@ def test_defect_is_reported(api: Api, ref_jpeg: bytes, defect_jpeg: bytes) -> No
     assert insp["image"]["width"] == 1200
     assert insp["quality"]["alignment_ok"] is True
     assert insp["algorithm"]["name"] == "classic-diff"
-    assert insp["algorithm"]["version"] == "0.1.0"
+    assert insp["algorithm"]["version"] == "0.2.0"
     assert insp["algorithm"]["params"]["engine"]["work_width"] == 1200
     assert insp["timings_ms"]["total"] > 0
     assert insp["attempts"] == 1

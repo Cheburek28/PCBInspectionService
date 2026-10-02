@@ -87,7 +87,7 @@ def test_playground_flow(ui: TestClient, ref_jpeg: bytes, defect_jpeg: bytes) ->
     state = ui.get(f"/ui/inspections/{iid}/state").json()
     assert state["status"] == "completed"
     assert len(state["defects"]) == 1
-    assert state["algorithm"]["params"]["engine"]["threshold"] == 12.0
+    assert state["algorithm"]["params"]["engine"]["threshold"] == 20.0
     defect = state["defects"][0]
 
     for url in (
@@ -95,6 +95,7 @@ def test_playground_flow(ui: TestClient, ref_jpeg: bytes, defect_jpeg: bytes) ->
         f"/ui/inspections/{iid}/image?kind=aligned",
         f"/ui/inspections/{iid}/image?kind=heatmap",
         f"/ui/inspections/{iid}/reference",
+        f"/ui/inspections/{iid}/mask",
         f"/ui/inspections/{iid}/defects/{defect['id']}/crop?kind=pair&height=200",
     ):
         r = ui.get(url)
