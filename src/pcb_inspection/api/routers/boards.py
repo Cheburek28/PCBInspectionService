@@ -9,7 +9,13 @@ from pcb_inspection.api.deps import Auth, Ctx
 from pcb_inspection.api.schemas import BoardOut, BoardVerdictIn, Problem
 from pcb_inspection.services import boards
 
-router = APIRouter(tags=["boards"], responses={401: {"model": Problem}, 404: {"model": Problem}})
+router = APIRouter(
+    tags=["boards"],
+    responses={
+        401: {"model": Problem, "description": "Missing or invalid API key"},
+        404: {"model": Problem, "description": "Not found"},
+    },
+)
 
 BoardKey = Annotated[str, Path(min_length=1, max_length=100)]
 

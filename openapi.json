@@ -102,24 +102,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -181,24 +181,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -260,24 +260,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -351,64 +351,64 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "409": {
+            "description": "Conflict with the current state",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Conflict"
+            }
           },
           "413": {
+            "description": "Upload too large",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Request Entity Too Large"
+            }
           },
           "415": {
+            "description": "Unsupported image format",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unsupported Media Type"
+            }
           },
           "422": {
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           }
         }
       }
@@ -472,44 +472,44 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "409": {
+            "description": "Conflict with the current state",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Conflict"
+            }
           },
           "422": {
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           }
         }
       }
@@ -562,24 +562,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -638,24 +638,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -738,24 +738,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "409": {
             "description": "NO_ACTIVE_REFERENCE, SESSION_CLOSED or IDEMPOTENCY_CONFLICT",
@@ -768,34 +768,34 @@
             }
           },
           "413": {
+            "description": "Upload too large",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Request Entity Too Large"
+            }
           },
           "415": {
+            "description": "Unsupported image format",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unsupported Media Type"
+            }
           },
           "422": {
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           }
         }
       }
@@ -861,24 +861,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -946,24 +946,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1067,34 +1067,34 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "409": {
+            "description": "Conflict with the current state",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Conflict"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1168,44 +1168,44 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "409": {
+            "description": "Conflict with the current state",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Conflict"
+            }
           },
           "422": {
+            "description": "Validation error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unprocessable Entity"
+            }
           }
         }
       }
@@ -1269,24 +1269,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1370,24 +1370,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1460,24 +1460,24 @@
             }
           },
           "401": {
+            "description": "Missing or invalid API key",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Unauthorized"
+            }
           },
           "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
                 }
               }
-            },
-            "description": "Not Found"
+            }
           },
           "422": {
             "description": "Validation Error",

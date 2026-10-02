@@ -15,7 +15,7 @@ jobs:
     name: pip-audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v6
       - run: uv export --frozen --no-dev --no-hashes --no-emit-project > requirements.txt
       - run: uvx pip-audit --strict -r requirements.txt
@@ -24,10 +24,10 @@ jobs:
     name: gitleaks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -35,8 +35,8 @@ jobs:
     name: Trivy (repository and image)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@0.33.1
+      - uses: actions/checkout@v7
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -44,7 +44,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - run: docker build -f docker/Dockerfile -t pcbis:scan .
-      - uses: aquasecurity/trivy-action@0.33.1
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: pcbis:scan
           severity: CRITICAL,HIGH
@@ -53,12 +53,15 @@ jobs:
 
   codeql:
     name: CodeQL
+    # code scanning needs a public repository (or GitHub Advanced Security on a private one)
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     permissions:
       security-events: write
       contents: read
+      actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: github/codeql-action/init@v3
         with:
           languages: python

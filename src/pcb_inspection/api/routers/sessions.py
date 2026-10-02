@@ -20,7 +20,13 @@ from pcb_inspection.domain.errors import ValidationFailed
 from pcb_inspection.engine.base import MaskStrategy
 from pcb_inspection.services import references, sessions
 
-router = APIRouter(tags=["sessions"], responses={401: {"model": Problem}, 404: {"model": Problem}})
+router = APIRouter(
+    tags=["sessions"],
+    responses={
+        401: {"model": Problem, "description": "Missing or invalid API key"},
+        404: {"model": Problem, "description": "Not found"},
+    },
+)
 
 
 @router.post("/sessions", status_code=status.HTTP_201_CREATED, response_model=SessionOut)
@@ -49,10 +55,10 @@ def close_session(session_id: uuid.UUID, ctx: Ctx, key: Auth) -> SessionOut:
     response_model=ReferenceOut,
     tags=["references"],
     responses={
-        409: {"model": Problem},
-        413: {"model": Problem},
-        415: {"model": Problem},
-        422: {"model": Problem},
+        409: {"model": Problem, "description": "Conflict with the current state"},
+        413: {"model": Problem, "description": "Upload too large"},
+        415: {"model": Problem, "description": "Unsupported image format"},
+        422: {"model": Problem, "description": "Validation error"},
     },
 )
 def upload_reference(
@@ -95,7 +101,10 @@ def upload_reference(
     status_code=status.HTTP_201_CREATED,
     response_model=ReferenceOut,
     tags=["references"],
-    responses={409: {"model": Problem}, 422: {"model": Problem}},
+    responses={
+        409: {"model": Problem, "description": "Conflict with the current state"},
+        422: {"model": Problem, "description": "Validation error"},
+    },
 )
 def reference_from_inspection(
     session_id: uuid.UUID, body: ReferenceFromInspection, ctx: Ctx, key: Auth

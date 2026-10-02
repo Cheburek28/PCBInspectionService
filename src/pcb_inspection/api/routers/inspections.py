@@ -25,7 +25,13 @@ from pcb_inspection.services import defects, inspections, media
 from pcb_inspection.services.inspections import BoardRef
 from pcb_inspection.services.media import ImageKind
 
-router = APIRouter(tags=["inspections"], responses={401: {"model": Problem}, 404: {"model": Problem}})
+router = APIRouter(
+    tags=["inspections"],
+    responses={
+        401: {"model": Problem, "description": "Missing or invalid API key"},
+        404: {"model": Problem, "description": "Not found"},
+    },
+)
 
 
 @router.post(
@@ -34,9 +40,9 @@ router = APIRouter(tags=["inspections"], responses={401: {"model": Problem}, 404
     response_model=InspectionAccepted,
     responses={
         409: {"model": Problem, "description": "NO_ACTIVE_REFERENCE, SESSION_CLOSED or IDEMPOTENCY_CONFLICT"},
-        413: {"model": Problem},
-        415: {"model": Problem},
-        422: {"model": Problem},
+        413: {"model": Problem, "description": "Upload too large"},
+        415: {"model": Problem, "description": "Unsupported image format"},
+        422: {"model": Problem, "description": "Validation error"},
     },
 )
 def submit_inspection(
@@ -110,7 +116,10 @@ def get_inspection_image(
 @router.get(
     "/inspections/{inspection_id}/defects/{defect_id}/crop",
     response_class=Response,
-    responses={200: {"content": {"image/jpeg": {}}}, 409: {"model": Problem}},
+    responses={
+        200: {"content": {"image/jpeg": {}}},
+        409: {"model": Problem, "description": "Conflict with the current state"},
+    },
 )
 def get_crop(
     inspection_id: uuid.UUID,
@@ -133,7 +142,10 @@ def get_crop(
     status_code=status.HTTP_201_CREATED,
     response_model=DefectOut,
     tags=["defects"],
-    responses={409: {"model": Problem}, 422: {"model": Problem}},
+    responses={
+        409: {"model": Problem, "description": "Conflict with the current state"},
+        422: {"model": Problem, "description": "Validation error"},
+    },
 )
 def add_manual_defect(inspection_id: uuid.UUID, body: ManualDefectIn, ctx: Ctx, key: Auth) -> DefectOut:
     """Region the operator marked on the test photo. Stored as accepted, mapped to reference coordinates."""
