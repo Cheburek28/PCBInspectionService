@@ -14,7 +14,9 @@ FROM python:${PYTHON_VERSION}-slim AS runtime
 LABEL org.opencontainers.image.source="https://github.com/Cheburek28/PCBInspectionService" \
       org.opencontainers.image.description="PCB photo inspection against a reference, with operator feedback dataset" \
       org.opencontainers.image.licenses="Apache-2.0"
+# security updates on top of the base image (it lags behind Debian fixes)
 RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
  && apt-get install -y --no-install-recommends tini \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --uid 10001 --create-home app \
