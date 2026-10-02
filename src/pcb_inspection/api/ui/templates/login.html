@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Вход · PCB Inspection{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 360px; margin: 80px auto;">
+  <h1>PCB Inspection</h1>
+  <form method="post" action="/ui/login">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="field">
+      <label for="password">Пароль</label>
+      <input type="password" id="password" name="password" autofocus required>
+    </div>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <button class="primary" type="submit">Войти</button>
+  </form>
+</div>
+{% endblock %}

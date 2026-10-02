@@ -1,0 +1,26 @@
+{% if rows %}
+<table>
+  <thead><tr>
+    <th>Время, UTC</th><th>Источник</th><th>Изделие</th><th>Плата</th><th>Ст.</th><th>Статус</th>
+    <th>Отличий</th><th>Решения</th><th>Порог</th><th>Время анализа</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}{% set i = r.inspection %}
+  <tr class="link" onclick="location.href='/ui/inspections/{{ i.id }}'">
+    <td class="mono">{{ i.created_at.strftime("%d.%m %H:%M:%S") }}</td>
+    <td><span class="chip">{{ r.source }}</span></td>
+    <td>{{ r.session.product_code }}{% if r.session.client_meta.get("note") %}<div class="hint">{{ r.session.client_meta.note }}</div>{% endif %}{% if r.session.client_meta.get("rerun_of") %}<div class="hint">повтор с новыми параметрами</div>{% endif %}</td>
+    <td class="mono">{{ i.board.barcode or i.board.board_key }}</td>
+    <td>{{ i.side }}</td>
+    <td class="s-{{ i.status }}">{{ i.status }}{% if i.rejection_code %}<div class="hint">{{ i.rejection_code }}</div>{% endif %}{% if i.superseded %}<div class="hint">заменена</div>{% endif %}</td>
+    <td>{{ r.auto_count }}</td>
+    <td>{% set c = r.verdict_counts %}{% if c.accepted or c.rejected %}<span class="s-failed">✓{{ c.accepted }}</span> <span class="muted">✗{{ c.rejected }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+    <td class="mono">{{ i.params.engine.threshold }}</td>
+    <td class="mono">{% if i.timings and i.timings.get("total") %}{{ "%.1f"|format(i.timings.total / 1000) }} с{% else %}—{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Пока пусто.</p>
+{% endif %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Сравнение · PCB Inspection{% endblock %}
+{% block content %}
+<h1>Сравнение с эталоном</h1>
+<form method="post" action="/ui/run" enctype="multipart/form-data" id="run-form">
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Снимки</h2>
+    <div class="field">
+      <label for="reference">Эталон (хорошая плата)</label>
+      <input type="file" id="reference" name="reference" accept="image/jpeg,image/png" required>
+    </div>
+    <div class="field">
+      <label for="photo">Проверяемая плата</label>
+      <input type="file" id="photo" name="photo" accept="image/jpeg,image/png" required>
+    </div>
+    <div class="grid cols-2" style="gap: 6px 16px;">
+      <div class="field">
+        <label for="product_code">Изделие</label>
+        <input type="text" id="product_code" name="product_code" placeholder="playground">
+      </div>
+      <div class="field">
+        <label for="side">Сторона</label>
+        <select id="side" name="side"><option>1</option><option>2</option></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="note">Заметка</label>
+      <input type="text" id="note" name="note" placeholder="что проверяем">
+    </div>
+    <p class="hint">Рабочая ширина анализа: {{ work_width }} px. Большие фото (6000×4000) загружаются дольше — это нормально.</p>
+  </div>
+  <div class="card">
+    <h2>Параметры</h2>
+    <p class="hint" style="margin-top: 0;">Пустое поле — значение сервера (показано серым).</p>
+    {% with values=defaults, prefill=False, current_mask=None %}{% include "_params.html" %}{% endwith %}
+  </div>
+</div>
+<button class="primary" type="submit" id="run-btn">Сравнить</button>
+<span class="muted" id="run-status"></span>
+</form>
+
+<div class="card" style="margin-top: 20px;">
+  <div class="row" style="justify-content: space-between;"><h2>Последние проверки</h2><a href="/ui/inspections">вся история →</a></div>
+  {% with rows=recent %}{% include "_history_table.html" %}{% endwith %}
+</div>
+<script>
+document.getElementById("run-form").addEventListener("submit", () => {
+  document.getElementById("run-btn").disabled = true;
+  document.getElementById("run-status").textContent = "Загрузка снимков…";
+});
+</script>
+{% endblock %}

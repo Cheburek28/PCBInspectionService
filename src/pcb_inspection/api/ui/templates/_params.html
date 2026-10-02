@@ -1,0 +1,19 @@
+{# Parameter inputs. `values` = effective params snapshot {"engine": {...}, "gates": {...}}; `prefill` = put values into inputs #}
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap: 6px 16px;">
+{% for f in fields %}
+  <div class="field">
+    <label for="p-{{ f.key }}">{{ f.label }}</label>
+    <input type="number" step="{{ f.step }}" min="0" id="p-{{ f.key }}" name="{{ f.key }}"
+           {% if prefill %}value="{{ values[f.group][f.key] }}"{% else %}placeholder="{{ values[f.group][f.key] }}"{% endif %}>
+    {% if f.hint %}<div class="hint">{{ f.hint }}</div>{% endif %}
+  </div>
+{% endfor %}
+</div>
+<div class="field">
+  <label for="mask_strategy">Область проверки (маска эталона)</label>
+  <select id="mask_strategy" name="mask_strategy">
+    <option value="">{% if current_mask %}как в исходной проверке ({{ current_mask }}){% else %}по умолчанию сервера{% endif %}</option>
+    {% for m in mask_strategies %}{% if m.value != "polygon" %}<option value="{{ m.value }}">{{ m.value }}</option>{% endif %}{% endfor %}
+  </select>
+  <div class="hint">full_frame — весь кадр; blue_fixture — плата внутри синих прорезей оснастки</div>
+</div>

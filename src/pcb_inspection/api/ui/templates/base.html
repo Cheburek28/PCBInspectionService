@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}PCB Inspection{% endblock %}</title>
+<style>
+:root {
+  --bg: #f5f6f8; --card: #fff; --fg: #1b1f24; --muted: #667080; --border: #d8dce2; --accent: #2563eb;
+  --ok: #15803d; --warn: #b45309; --bad: #b91c1c; --chip: #eef1f5;
+  --pending: #eab308; --accepted: #dc2626; --rejected: #9ca3af; --manual: #2563eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #121418; --card: #1b1e24; --fg: #e5e7eb; --muted: #9aa3b0; --border: #2e333b; --chip: #262a31;
+          --accent: #60a5fa; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+header { display: flex; align-items: center; gap: 20px; padding: 10px 20px; background: var(--card); border-bottom: 1px solid var(--border); }
+header b { font-size: 15px; }
+header nav { display: flex; gap: 14px; flex: 1; }
+header a { color: var(--fg); text-decoration: none; }
+header a.active { color: var(--accent); font-weight: 600; }
+main { padding: 20px; max-width: 1500px; margin: 0 auto; }
+h1 { font-size: 20px; margin: 0 0 14px; }
+h2 { font-size: 16px; margin: 0 0 10px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.grid { display: grid; gap: 16px; }
+.cols-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+input, select, textarea, button { font: inherit; color: inherit; }
+input[type=text], input[type=number], input[type=password], select, textarea {
+  width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+input[type=file] { width: 100%; }
+::placeholder { color: var(--muted); opacity: .55; }
+.field { margin-bottom: 12px; }
+.hint { font-size: 12px; color: var(--muted); }
+button, .btn { display: inline-block; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--chip);
+  cursor: pointer; text-decoration: none; color: var(--fg); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: .5; cursor: default; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; }
+tr.link { cursor: pointer; }
+tr.link:hover { background: var(--chip); }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 10px; background: var(--chip); font-size: 12px; }
+.s-completed { color: var(--ok); } .s-rejected { color: var(--warn); } .s-failed { color: var(--bad); }
+.s-queued, .s-processing { color: var(--accent); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.muted { color: var(--muted); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.error { color: var(--bad); }
+dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+dl.kv dt { color: var(--muted); } dl.kv dd { margin: 0; }
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+{% if request.url.path != "/ui/login" %}
+<header>
+  <b>PCB Inspection</b>
+  <nav>
+    <a href="/ui/" class="{{ 'active' if request.url.path == '/ui/' }}">Сравнение</a>
+    <a href="/ui/inspections" class="{{ 'active' if request.url.path.startswith('/ui/inspections') }}">История</a>
+    <a href="/docs" target="_blank">API</a>
+  </nav>
+  <form method="post" action="/ui/logout"><button>Выйти</button></form>
+</header>
+{% endif %}
+<main>{% block content %}{% endblock %}</main>
+</body>
+</html>

@@ -43,7 +43,8 @@ docker compose up -d --build --wait          # api on :8000, worker, postgres, r
 docker compose exec api pcbis apikey create --station demo   # prints the API key
 ```
 
-Open http://localhost:8000/docs, or use curl:
+Open http://localhost:8000/docs for the API, or set `PCBIS_UI_PASSWORD` in `.env` and use the web console at
+http://localhost:8000/ui ([docs/web-console.md](docs/web-console.md)). With curl:
 
 ```bash
 KEY=pcbis_...                                 # from the command above
@@ -78,6 +79,7 @@ Coordinates are pixels of the uploaded image after EXIF orientation. Details: [d
 
 | | |
 |---|---|
+| [docs/web-console.md](docs/web-console.md) | Built-in web page: try parameters on your photos, browse history |
 | [docs/api.md](docs/api.md) | Client guide: flow, coordinates, idempotency, polling, examples |
 | [docs/errors.md](docs/errors.md) | Every error and rejection code |
 | [docs/algorithm.md](docs/algorithm.md) | How `classic-diff` works, parameters, limitations, calibration |

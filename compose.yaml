@@ -13,6 +13,8 @@ x-app: &app
     PCBIS_LOG_FORMAT: ${PCBIS_LOG_FORMAT:-console}
     PCBIS_ENGINE_WORK_WIDTH: ${PCBIS_ENGINE_WORK_WIDTH:-3000}
     PCBIS_GATE_MIN_WIDTH: ${PCBIS_GATE_MIN_WIDTH:-1500}
+    PCBIS_DEFAULT_MASK_STRATEGY: ${PCBIS_DEFAULT_MASK_STRATEGY:-full_frame}
+    PCBIS_UI_PASSWORD: ${PCBIS_UI_PASSWORD:-}  # web console at /ui, taken from .env
   volumes:
     - blobdata:/data
 

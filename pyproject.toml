@@ -21,6 +21,7 @@ dependencies = [
     "boto3>=1.34",
     "celery[redis]>=5.4",
     "fastapi>=0.115",
+    "jinja2>=3.1.6",
     "numpy>=2.0",
     "opencv-python-headless>=4.10",
     "pillow>=10.4",
@@ -83,7 +84,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S", "PLR", "N806"]
+"tests/**" = ["S", "PLR", "N806", "RUF001"]  # Russian UI strings in assertions
+"src/pcb_inspection/api/ui/**" = ["RUF001"]
 "src/pcb_inspection/engine/**" = ["N806"]  # matrix names like H, W follow math notation
 "migrations/**" = ["E501"]
 "scripts/**" = ["S603", "S607"]  # dev scripts call docker from PATH

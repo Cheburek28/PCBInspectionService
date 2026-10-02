@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Проверка · PCB Inspection{% endblock %}
+{% block head %}
+<style>
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+.tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.viewer { position: relative; line-height: 0; background: #000; border-radius: 6px; overflow: hidden; }
+.viewer img { width: 100%; height: auto; display: block; }
+.viewer svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.viewer rect { fill: transparent; cursor: pointer; }
+.viewer rect.sel { stroke-width: 4; }
+.viewer text { font-weight: 700; paint-order: stroke; stroke: #000; stroke-width: 3px; pointer-events: none; }
+.defects { max-height: 420px; overflow: auto; }
+.defect { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.defect:hover, .defect.sel { background: var(--chip); }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.compare img { width: 100%; border-radius: 6px; display: block; background: var(--chip); min-height: 120px; }
+.v-pending { color: var(--pending); } .v-accepted { color: var(--accepted); } .v-rejected { color: var(--rejected); }
+.banner { padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; border: 1px solid var(--border); }
+.banner.warn { border-color: var(--warn); } .banner.bad { border-color: var(--bad); } .banner.info { border-color: var(--accent); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="row" style="justify-content: space-between; margin-bottom: 12px;">
+  <h1 style="margin: 0;">Проверка <span class="mono muted">{{ insp.id[:8] }}</span>
+    <span class="s-{{ insp.status }}" id="status">{{ insp.status }}</span></h1>
+  <div class="muted">
+    {{ session.product_code }} · сторона {{ insp.side }} · плата <span class="mono">{{ insp.board.barcode or insp.board.board_key }}</span>
+    · {{ session.client_meta.get("source") or session.api_key.station }}
+    {% if session.client_meta.get("rerun_of") %} · <a href="/ui/inspections/{{ session.client_meta.rerun_of }}">исходная проверка</a>{% endif %}
+  </div>
+</div>
+{% if session.client_meta.get("note") %}<p class="muted">{{ session.client_meta.note }}</p>{% endif %}
+
+{% if insp.status in ("queued", "processing") %}
+<div class="banner info" id="progress">Анализ… <span id="stage">{{ insp.stage or insp.status }}</span> <span id="elapsed"></span></div>
+{% elif insp.rejection %}
+<div class="banner warn"><b>{{ insp.rejection.code }}</b> — {{ insp.rejection.message }}
+  <div class="mono muted">{{ insp.rejection.details }}</div></div>
+{% elif insp.error %}
+<div class="banner bad"><b>{{ insp.error.code }}</b> — {{ insp.error.message }}</div>
+{% endif %}
+
+<div class="layout">
+  <div>
+    <div class="card">
+      <div class="tabs" id="tabs">
+        <button data-view="test" class="on">Проверяемая</button>
+        <button data-view="ref">Эталон</button>
+        {% if insp.quality and insp.quality.alignment_ok %}
+        <button data-view="aligned">Выровненная</button>
+        <button data-view="heatmap">Тепловая карта</button>
+        {% endif %}
+        <label class="row" style="margin: 0 0 0 auto; color: var(--fg);"><input type="checkbox" id="show-boxes" checked> рамки</label>
+      </div>
+      <div class="viewer"><img id="view-img" alt=""><svg id="overlay"></svg></div>
+      <p class="hint">Клик по рамке — сравнение с эталоном. Жёлтые — не проверены, красные — неисправность, серые — отклонены, синие — добавлены вручную.</p>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Отличия · {{ insp.defects|length }}</h2>
+      <div class="defects" id="defect-list"></div>
+    </div>
+    <div class="card compare" id="compare" hidden>
+      <h2 id="cmp-title"></h2>
+      <div class="hint row" style="justify-content: space-between;"><span>эталон</span><span>проверяемая</span></div>
+      <img id="cmp-img" alt="">
+      <div class="field" style="margin-top: 10px;">
+        <label for="cmp-type">Тип неисправности</label>
+        <select id="cmp-type"><option value="">—</option>
+          {% for t in defect_types %}<option>{{ t }}</option>{% endfor %}</select>
+      </div>
+      <div class="row">
+        <button class="primary" data-verdict="accepted">Принять неисправность</button>
+        <button data-verdict="rejected">Отклонить</button>
+        <button data-verdict="pending">Сбросить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Качество и время</h2>
+    <dl class="kv">
+      {% if insp.quality %}
+      <dt>Точек совмещения</dt><dd>{{ insp.quality.alignment_inliers }}</dd>
+      <dt>Резкость к эталону</dt><dd>{{ insp.quality.sharpness_ratio }}</dd>
+      <dt>Сдвиг L / a / b</dt><dd>{{ insp.quality.lab_shift }}</dd>
+      <dt>Отличий</dt><dd>{{ insp.quality.differences_count }} · {{ "%.3f"|format(insp.quality.differences_area_ratio * 100) }} % площади</dd>
+      {% if insp.quality.same_as_reference %}<dt></dt><dd>снимок совпадает с эталоном</dd>{% endif %}
+      {% endif %}
+      <dt>Изображение</dt><dd>{{ insp.image.width }}×{{ insp.image.height }} · эталон {{ reference.width }}×{{ reference.height }} · маска {{ reference.mask_strategy }}</dd>
+      <dt>Алгоритм</dt><dd>{{ insp.algorithm.name }} {{ insp.algorithm.version or "" }}</dd>
+      <dt>Тайминги, мс</dt><dd class="mono">{{ insp.timings_ms }}</dd>
+      <dt>Создана</dt><dd>{{ insp.created_at[:19].replace("T", " ") }} UTC</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h2>Повторить с другими параметрами</h2>
+    <form method="post" action="/ui/inspections/{{ insp.id }}/rerun" id="rerun-form">
+      {% with values=params, prefill=True, current_mask=reference.mask_strategy %}{% include "_params.html" %}{% endwith %}
+      <button class="primary" id="rerun-btn">Запустить</button>
+      <span class="hint">Те же эталон и снимок, новая запись в истории. Исходная проверка не меняется.</span>
+    </form>
+  </div>
+</div>
+
+<script>
+const insp = {{ insp_json | safe }};
+const ref = {{ reference | tojson }};
+const COLORS = {pending: "var(--pending)", accepted: "var(--accepted)", rejected: "var(--rejected)"};
+const VERDICT_LABEL = {pending: "не проверено", accepted: "неисправность", rejected: "отклонено"};
+const color = d => d.source === "manual" ? "var(--manual)" : COLORS[d.verdict];
+let view = "test", selected = null;
+
+const views = {
+  test: {src: `/ui/inspections/${insp.id}/image?kind=original`, w: insp.image.width, h: insp.image.height, box: "bbox_test"},
+  ref: {src: `/ui/inspections/${insp.id}/reference`, w: ref.width, h: ref.height, box: "bbox_ref"},
+  aligned: {src: `/ui/inspections/${insp.id}/image?kind=aligned`, w: ref.width, h: ref.height, box: "bbox_ref"},
+  heatmap: {src: `/ui/inspections/${insp.id}/image?kind=heatmap`, w: ref.width, h: ref.height, box: "bbox_ref"},
+};
+
+function svgEl(name, attrs) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function draw() {
+  const v = views[view];
+  const img = document.getElementById("view-img");
+  if (img.getAttribute("src") !== v.src) img.src = v.src;
+  const svg = document.getElementById("overlay");
+  svg.setAttribute("viewBox", `0 0 ${v.w} ${v.h}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.innerHTML = "";
+  if (!document.getElementById("show-boxes").checked) return;
+  const pad = v.w / 150, font = v.w / 70;
+  for (const d of insp.defects) {
+    const b = d[v.box];
+    const r = svgEl("rect", {x: b.x - pad, y: b.y - pad, width: b.w + 2 * pad, height: b.h + 2 * pad,
+      stroke: color(d), "stroke-width": 2, "vector-effect": "non-scaling-stroke", rx: pad / 2});
+    if (selected === d.id) r.classList.add("sel");
+    r.addEventListener("click", () => select(d.id));
+    svg.appendChild(r);
+    const t = svgEl("text", {x: b.x - pad, y: b.y - pad - font / 4, fill: color(d), "font-size": font});
+    t.textContent = d.rank;
+    svg.appendChild(t);
+  }
+}
+
+function list() {
+  const box = document.getElementById("defect-list");
+  box.innerHTML = insp.defects.length ? "" : '<p class="muted">Отличий нет.</p>';
+  for (const d of insp.defects) {
+    const row = document.createElement("div");
+    row.className = "defect" + (selected === d.id ? " sel" : "");
+    row.innerHTML = `<span class="dot" style="background:${color(d)}"></span>
+      <b>#${d.rank}</b>
+      <span class="mono">${d.score === null ? "вручную" : "оценка " + d.score}</span>
+      <span class="muted">${d.bbox_test.w}×${d.bbox_test.h}</span>
+      <span class="v-${d.verdict}" style="margin-left:auto">${VERDICT_LABEL[d.verdict]}</span>`;
+    row.addEventListener("click", () => select(d.id));
+    box.appendChild(row);
+  }
+}
+
+function select(id) {
+  selected = id;
+  const d = insp.defects.find(x => x.id === id);
+  document.getElementById("compare").hidden = false;
+  document.getElementById("cmp-title").textContent = `Отличие #${d.rank}` + (d.score !== null ? ` · оценка ${d.score}` : "");
+  document.getElementById("cmp-img").src = `/ui/inspections/${insp.id}/defects/${d.id}/crop?kind=pair&height=320`;
+  document.getElementById("cmp-type").value = d.defect_type || "";
+  draw(); list();
+}
+
+document.querySelectorAll("[data-verdict]").forEach(btn => btn.addEventListener("click", async () => {
+  const d = insp.defects.find(x => x.id === selected);
+  const res = await fetch(`/ui/defects/${d.id}/verdict`, {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({verdict: btn.dataset.verdict, defect_type: document.getElementById("cmp-type").value || null})});
+  if (!res.ok) { alert("Не сохранилось: " + res.status); return; }
+  const saved = await res.json();
+  d.verdict = saved.verdict; d.defect_type = saved.defect_type;
+  const next = insp.defects.find(x => x.verdict === "pending" && x.source === "auto");
+  if (next && btn.dataset.verdict !== "pending") select(next.id); else { draw(); list(); }
+}));
+
+document.querySelectorAll("#tabs button").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b === btn));
+  view = btn.dataset.view; draw();
+}));
+document.getElementById("show-boxes").addEventListener("change", draw);
+document.getElementById("rerun-form").addEventListener("submit", () => {
+  document.getElementById("rerun-btn").disabled = true;
+});
+
+draw(); list();
+
+if (["queued", "processing"].includes(insp.status)) {
+  const t0 = Date.now();
+  setInterval(() => { document.getElementById("elapsed").textContent = Math.round((Date.now() - t0) / 1000) + " с"; }, 500);
+  (async function poll() {
+    try {
+      const res = await fetch(`/ui/inspections/${insp.id}/state?wait=20`);
+      const s = await res.json();
+      if (!["queued", "processing"].includes(s.status)) { location.reload(); return; }
+      document.getElementById("stage").textContent = s.stage || s.status;
+    } catch (e) { await new Promise(r => setTimeout(r, 2000)); }
+    poll();
+  })();
+}
+</script>
+{% endblock %}

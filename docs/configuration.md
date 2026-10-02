@@ -12,6 +12,8 @@ also read). Source of truth: [`settings.py`](../src/pcb_inspection/settings.py).
 | `PCBIS_STORAGE_BACKEND` | `local` | `local` or `s3` |
 | `PCBIS_STORAGE_PATH` | `./data` (`/data` in Docker) | root for `local` |
 | `PCBIS_S3_ENDPOINT` / `_BUCKET` / `_ACCESS_KEY` / `_SECRET_KEY` / `_REGION` | — / `pcbis` / — / — / `us-east-1` | for `s3` (MinIO, AWS, …) |
+| `PCBIS_UI_PASSWORD` | — | enables the web console at `/ui` ([web-console.md](web-console.md)) |
+| `PCBIS_UI_SESSION_HOURS` | 12 | console login lifetime |
 | `PCBIS_LOG_LEVEL` | `INFO` | |
 | `PCBIS_LOG_FORMAT` | `json` | `json` or `console` |
 

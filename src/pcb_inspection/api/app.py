@@ -9,11 +9,13 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import RedirectResponse
 
 from pcb_inspection import __version__
 from pcb_inspection.api import errors
 from pcb_inspection.api.routers import boards, health, inspections, sessions
 from pcb_inspection.api.schemas import API_PREFIX
+from pcb_inspection.api.ui import router as ui
 from pcb_inspection.observability import HTTP_LATENCY, HTTP_REQUESTS, configure_logging
 from pcb_inspection.services.bootstrap import build_context
 from pcb_inspection.services.context import ServiceContext
@@ -50,6 +52,15 @@ def create_app(ctx: ServiceContext | None = None) -> FastAPI:
     app.include_router(health.router)
     for router in (sessions.router, inspections.router, boards.router):
         app.include_router(router, prefix=API_PREFIX)
+    app.include_router(ui.router)
+
+    @app.exception_handler(ui.LoginRequired)
+    async def _ui_login(request: Request, exc: ui.LoginRequired) -> Response:
+        return ui.login_redirect(request)
+
+    @app.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        return RedirectResponse("/ui/")
 
     @app.middleware("http")
     async def request_context(

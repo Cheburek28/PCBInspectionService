@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from pcb_inspection.domain.gates import QualityThresholds
@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     max_poll_wait_s: int = 30
     reference_cache_size: int = 8
     rate_limit_per_min: int = 0  # 0 disables rate limiting
+
+    # web console at /ui; disabled unless a password is set
+    ui_password: SecretStr | None = None
+    ui_session_hours: int = 12
 
     log_level: str = "INFO"
     log_format: Literal["json", "console"] = "json"

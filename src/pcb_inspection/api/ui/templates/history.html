@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}История · PCB Inspection{% endblock %}
+{% block content %}
+<h1>История проверок <span class="muted" style="font-weight: 400;">· {{ total }}</span></h1>
+<form class="card row" method="get" action="/ui/inspections">
+  <div><label for="f-source">Источник</label>
+    <select id="f-source" name="source">
+      <option value="">все</option>
+      <option value="web-ui" {{ 'selected' if filters.source == 'web-ui' }}>веб-консоль</option>
+      <option value="api" {{ 'selected' if filters.source == 'api' }}>API (рабочие места)</option>
+    </select></div>
+  <div><label for="f-status">Статус</label>
+    <select id="f-status" name="status"><option value="">все</option>
+      {% for s in statuses %}<option {{ 'selected' if filters.status == s }}>{{ s }}</option>{% endfor %}
+    </select></div>
+  <div><label for="f-product">Изделие</label>
+    <select id="f-product" name="product"><option value="">все</option>
+      {% for p in products %}<option {{ 'selected' if filters.product == p }}>{{ p }}</option>{% endfor %}
+    </select></div>
+  <div style="align-self: flex-end;"><button>Показать</button></div>
+</form>
+<div class="card">
+  {% include "_history_table.html" %}
+  {% if pages > 1 %}
+  <div class="row" style="margin-top: 12px;">
+    {% set q = "&source=" ~ filters.source ~ "&status=" ~ filters.status ~ "&product=" ~ filters.product %}
+    {% if page > 1 %}<a class="btn" href="?page={{ page - 1 }}{{ q }}">← назад</a>{% endif %}
+    <span class="muted">страница {{ page }} из {{ pages }}</span>
+    {% if page < pages %}<a class="btn" href="?page={{ page + 1 }}{{ q }}">вперёд →</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
