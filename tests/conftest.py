@@ -38,8 +38,8 @@ class Scene:
         return [(b, cam.project(b)) for b in defects.affected(self.spec)]
 
 
-def make_scene(seed: int = 1, blue_fixture: bool = False) -> Scene:
-    spec = sy.random_board(seed, blue_fixture=blue_fixture)
+def make_scene(seed: int = 1, blue_fixture: bool = False, **colors: tuple[int, int, int]) -> Scene:
+    spec = sy.random_board(seed, blue_fixture=blue_fixture, **colors)
     return Scene(spec, sy.photograph(sy.render(spec), sy.identity_camera(spec)))
 
 

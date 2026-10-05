@@ -16,6 +16,7 @@ from pcb_inspection.engine.imaging import BGRImage
 class MaskStrategy(StrEnum):
     FULL_FRAME = "full_frame"
     BLUE_FIXTURE = "blue_fixture"
+    GREEN_BOARD = "green_board"
     POLYGON = "polygon"
 
 

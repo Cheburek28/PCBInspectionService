@@ -49,7 +49,7 @@ POST /api/v1/sessions/{session_id}/references          (multipart)
   side=1
   image=@reference.jpg
   board={"board_key": "…", "barcode": "…"}            (optional)
-  mask_strategy=full_frame | blue_fixture | polygon   (optional, server default)
+  mask_strategy=full_frame | blue_fixture | green_board | polygon   (optional, server default)
   mask_polygon=[[x,y], …]                             (for polygon, uploaded-image pixels)
 → 201 {"id": "…", "side": 1, "is_active": true, "mask": {"coverage": 0.97, "url": "…/mask.png"}, …}
 ```

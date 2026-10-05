@@ -6,8 +6,9 @@ import uuid
 import cv2
 import numpy as np
 
+from pcb_inspection import synthetic as sy
 from pcb_inspection.engine.imaging import encode_jpeg, encode_png
-from tests.conftest import Scene
+from tests.conftest import Scene, make_scene
 from tests.integration.conftest import Api
 
 
@@ -74,6 +75,15 @@ def test_blue_fixture_mask_found(api: Api, fixture_scene: Scene) -> None:
     s = api.create_session()
     r = api.upload_reference(s["id"], encode_jpeg(fixture_scene.reference, 95), mask_strategy="blue_fixture")
     assert r.status_code == 201, r.text
+    assert 0.5 < r.json()["mask"]["coverage"] < 0.75
+
+
+def test_green_board_mask_on_a_white_fixture(api: Api) -> None:
+    scene = make_scene(seed=3, blue_fixture=True, panel_bgr=sy.BOARD_BGR, slot_bgr=(235, 235, 235))
+    s = api.create_session()
+    r = api.upload_reference(s["id"], encode_jpeg(scene.reference, 95), mask_strategy="green_board")
+    assert r.status_code == 201, r.text
+    assert r.json()["mask"]["strategy"] == "green_board"
     assert 0.5 < r.json()["mask"]["coverage"] < 0.75
 
 

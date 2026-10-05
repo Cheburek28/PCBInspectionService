@@ -49,6 +49,7 @@ Branch on `code`, never on `title`/`detail` (human text, may change).
 
 ### board_mask_not_found
 `422` — the inspected area could not be found on the reference (e.g. `blue_fixture` without blue slots,
+`green_board` without green solder mask or without slots around the board,
 or a polygon covering < 3 % of the image).
 
 ### validation_error

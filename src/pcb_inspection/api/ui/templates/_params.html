@@ -15,5 +15,5 @@
     <option value="">{% if current_mask %}как в исходной проверке ({{ current_mask }}){% else %}по умолчанию сервера{% endif %}</option>
     {% for m in mask_strategies %}{% if m.value != "polygon" %}<option value="{{ m.value }}">{{ m.value }}</option>{% endif %}{% endfor %}
   </select>
-  <div class="hint">full_frame — весь кадр; blue_fixture — плата внутри синих прорезей оснастки</div>
+  <div class="hint">full_frame — весь кадр; green_board — зелёная плата внутри прорезей, подложка любого цвета; blue_fixture — только синяя подложка</div>
 </div>

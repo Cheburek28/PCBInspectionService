@@ -2416,6 +2416,7 @@
         "enum": [
           "full_frame",
           "blue_fixture",
+          "green_board",
           "polygon"
         ],
         "title": "MaskStrategy"

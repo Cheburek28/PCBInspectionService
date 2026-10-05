@@ -46,7 +46,9 @@ class BoardSpec:
     components: tuple[Component, ...]
     traces: tuple[tuple[tuple[int, int], ...], ...]
     vias: tuple[tuple[int, int, int], ...]
-    blue_fixture: bool = False
+    blue_fixture: bool = False  # board island in a panel, slots around it show the fixture
+    panel_bgr: tuple[int, int, int] = PANEL_BGR
+    slot_bgr: tuple[int, int, int] = SLOT_BGR  # fixture colour seen through the slots
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +91,8 @@ def random_board(
     height: int = 800,
     blue_fixture: bool = False,
     grid: tuple[int, int] = (7, 5),
+    panel_bgr: tuple[int, int, int] = PANEL_BGR,
+    slot_bgr: tuple[int, int, int] = SLOT_BGR,
 ) -> BoardSpec:
     rng = np.random.default_rng(seed)
     if blue_fixture:
@@ -128,7 +132,9 @@ def random_board(
         )
         for _ in range(60)
     )
-    return BoardSpec(width, height, seed, area, tuple(components), tuple(traces), vias, blue_fixture)
+    return BoardSpec(
+        width, height, seed, area, tuple(components), tuple(traces), vias, blue_fixture, panel_bgr, slot_bgr
+    )
 
 
 def render(spec: BoardSpec, defects: Defects | None = None) -> BGRImage:
@@ -137,13 +143,13 @@ def render(spec: BoardSpec, defects: Defects | None = None) -> BGRImage:
     s = SUPERSAMPLE
     rng = np.random.default_rng(spec.seed + 7919)
     img = np.empty((spec.height * s, spec.width * s, 3), np.uint8)
-    img[:] = PANEL_BGR if spec.blue_fixture else BOARD_BGR
+    img[:] = spec.panel_bgr if spec.blue_fixture else BOARD_BGR
     a = spec.board_area
     texture = cv2.resize(rng.normal(0, 9, (a.h // 8, a.w // 8)).astype(np.float32), (a.w * s, a.h * s))
     board = np.clip(np.array(BOARD_BGR, np.float32) + texture[..., None], 0, 255).astype(np.uint8)
     img[a.y * s : (a.y + a.h) * s, a.x * s : (a.x + a.w) * s] = board
     if spec.blue_fixture:
-        _draw_fixture(img, a, s)
+        _draw_fixture(img, a, s, spec.slot_bgr)
     for pts in spec.traces:
         cv2.polylines(img, [np.array(pts, np.int32) * s], False, TRACE_BGR, 3 * s, cv2.LINE_AA)
     for x, y, r in spec.vias:
@@ -166,7 +172,7 @@ def render(spec: BoardSpec, defects: Defects | None = None) -> BGRImage:
     return img
 
 
-def _draw_fixture(img: BGRImage, a: BBox, s: int) -> None:
+def _draw_fixture(img: BGRImage, a: BBox, s: int, color: tuple[int, int, int]) -> None:
     gap = 10
     thick = 18
     n = 4
@@ -182,7 +188,7 @@ def _draw_fixture(img: BGRImage, a: BBox, s: int) -> None:
             else:
                 x = a.x - gap - thick if side == 2 else a.x + a.w + gap
                 p0, p1 = (x, a.y + start), (x + thick, a.y + start + int(seg))
-            cv2.rectangle(img, (p0[0] * s, p0[1] * s), (p1[0] * s, p1[1] * s), SLOT_BGR, -1)
+            cv2.rectangle(img, (p0[0] * s, p0[1] * s), (p1[0] * s, p1[1] * s), color, -1)
 
 
 def _draw_pads(img: BGRImage, b: BBox, s: int) -> None:

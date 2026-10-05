@@ -77,4 +77,5 @@ tests/unit, tests/integration, scripts/smoke.py
 - Celery tasks must stay thin; logic belongs in `services/pipeline.py` where it is tested without a broker.
 - The reference cache (`ServiceContext.ref_cache`) is per process. Workers rebuild prepared references from
   stored image + mask; masks are never recomputed after a reference is created.
-- `blue_fixture` masks are specific to fixtures with blue slots around the board; the default is `full_frame`.
+- `blue_fixture` masks are specific to fixtures with blue slots around the board; `green_board` finds a green
+  board in slots of any other colour. The default is `full_frame`.

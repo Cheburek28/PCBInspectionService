@@ -15,6 +15,18 @@ every inspection (`algorithm.version`).
      mistaken for a slot. Bridges between slots are closed with growing kernels until an island separates;
      the island is then grown back to the inner slot edges (bounded by the convex hull of the surrounding
      slots), so corners are not cut off and the mask is the same from photo to photo.
+   - `green_board` — the same board island for a fixture of **any colour except green**. Runs at 1500 px.
+     The solder-mask green is measured on the image (peak hue 35–100 among saturated pixels, ±10); every
+     large non-green blob is a slot or a component. Slots border the panel, components border only the
+     board: the panel is the green reaching the frame edge after an erosion that cuts the bridges to the
+     board (radii 30–170 px at 3000 px). The fixture colour is the median Lab colour of those slots (blobs
+     off the frame edge, so edge-connector fingers do not count); components merged with a slot are
+     dropped by colour. Every radius yields a candidate island — the one found at most radii wins, the
+     same edge restoration as `blue_fixture` is applied, thin slivers are cut and holes (components)
+     filled. Measured against `blue_fixture` on 30 production photos with the fixture repainted
+     white / light grey / black / yellow: no failures, IoU ≥ 0.99 on the original blue, ≥ 0.94 on
+     white, black and yellow. Light grey is the hard case — grey ICs share its colour — and a slot next
+     to a narrow panel strip may stay inside the mask (2 of 30 photos).
    - `polygon` — client-supplied polygon in uploaded-reference pixels.
 3. **Board-anchored alignment**: SIFT keypoints of the reference are taken only on the board (mask dilated
    by 60 px), so the fixture seen through the slots and the panel — which may shift relative to the board —
