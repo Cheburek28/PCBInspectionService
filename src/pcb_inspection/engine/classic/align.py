@@ -15,6 +15,8 @@ MIN_MATCHES = 10
 LOWE_RATIO = 0.75
 RANSAC_REPROJ_PX = 3.0
 MIN_SCALE, MAX_SCALE = 0.8, 1.25
+FLOW_SCALE = 0.5  # optical flow resolution relative to the working image
+FLOW_MAX_PX = 3.0  # cap of the local flow correction, working pixels
 
 
 @dataclass(slots=True)
@@ -106,15 +108,22 @@ def align(ref: BGRImage, ref_features: Features, test: BGRImage, n_features: int
 def refine_flow(ref: BGRImage, warped: BGRImage) -> BGRImage:
     """Residual local alignment with dense optical flow.
 
-    The flow is heavily smoothed so that real defects are not "explained away" by warping.
+    The flow is heavily smoothed so that real defects are not "explained away" by warping. It is computed at
+    ``FLOW_SCALE`` (smoothing makes full resolution pointless) and capped at ``FLOW_MAX_PX``: after the
+    homography and ECC the true residual is about a pixel, a larger local flow is a false match on a uniform
+    IC body or a row of identical leads and would bend straight edges into a false difference.
     """
     g1 = cv2.GaussianBlur(cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY), (0, 0), 2)
     g2 = cv2.GaussianBlur(cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY), (0, 0), 2)
-    flow = cv2.calcOpticalFlowFarneback(
-        g1, g2, np.zeros((*g1.shape, 2), np.float32), 0.5, 4, 41, 5, 7, 1.5, 0
-    )
-    flow = cv2.GaussianBlur(flow, (0, 0), 12)
     h, w = g1.shape
+    a = cv2.resize(g1, None, fx=FLOW_SCALE, fy=FLOW_SCALE, interpolation=cv2.INTER_AREA)
+    b = cv2.resize(g2, None, fx=FLOW_SCALE, fy=FLOW_SCALE, interpolation=cv2.INTER_AREA)
+    win = max(5, int(41 * FLOW_SCALE) | 1)
+    small = cv2.calcOpticalFlowFarneback(a, b, np.zeros((*a.shape, 2), np.float32), 0.5, 4, win, 5, 7, 1.5, 0)
+    flow = np.asarray(cv2.resize(small, (w, h), interpolation=cv2.INTER_LINEAR), np.float32) / FLOW_SCALE
+    flow = np.asarray(cv2.GaussianBlur(flow, (0, 0), 12), np.float32)
+    magnitude = np.hypot(flow[..., 0], flow[..., 1])
+    flow *= np.minimum(1.0, FLOW_MAX_PX / np.maximum(magnitude, 1e-6))[..., None]
     gx, gy = np.meshgrid(np.arange(w, dtype=np.float32), np.arange(h, dtype=np.float32))
     out = cv2.remap(
         warped, gx + flow[..., 0], gy + flow[..., 1], cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE

@@ -32,8 +32,12 @@ every inspection (`algorithm.version`).
    by 60 px), so the fixture seen through the slots and the panel — which may shift relative to the board —
    do not drive the fit. Lowe ratio 0.75, RANSAC homography (3 px), plausibility check (scale 0.8–1.25,
    no mirroring, weak perspective), otherwise `ALIGNMENT_FAILED`.
-4. **Refinement**: ECC affine at half resolution (sub-pixel), then dense Farneback optical flow smoothed
-   with σ = 12 px — removes residual parallax without "explaining away" real defects.
+4. **Refinement**: ECC affine at half resolution (sub-pixel), then dense Farneback optical flow at half
+   resolution, smoothed with σ = 12 px and capped at 3 px — removes residual parallax without "explaining away"
+   real defects. The cap matters: on a uniform IC body or a row of identical leads the flow can match the wrong
+   lead and shift a patch by ~10 px, bending a straight edge into a false difference. On labelled production
+   inspections (engine 0.3.0 vs 0.2.0) the half-resolution capped flow kept every accepted defect and removed
+   ~20 % of the regions operators had rejected; the stage is also ~4× faster.
 5. **Quality**: Lab shift of the aligned photo vs. reference inside the mask; sharpness ratio (mean |Laplacian|)
    on the *unwarped* photo, only where photo and reference agree.
 6. **Colour normalisation**: per-channel Lab mean/std matched to the reference inside the mask.

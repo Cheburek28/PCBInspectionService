@@ -125,8 +125,10 @@ Example (shortened):
 - `GET /inspections/{id}/image?kind=original|aligned|heatmap` — `aligned` is the photo warped into the
   reference frame (working resolution), `heatmap` the difference map over it.
 - `GET /inspections/{id}/defects/{defect_id}/crop?kind=pair|ref|test&pad=60&height=400` — reference and
-  aligned test crops with identical geometry; `pair` puts the reference on the left. `pad` is in
-  uploaded-reference pixels. Responses are cacheable.
+  test crops with identical geometry; `pair` puts the reference on the left. The test crop is the original
+  photo brought into the reference frame by the board-wide transform only (no local optical-flow warping,
+  which can bend straight edges), so it shows the board as photographed. `pad` is in uploaded-reference
+  pixels. Responses are cacheable.
 
 ### 6. Operator feedback
 

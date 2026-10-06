@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import cv2
 import numpy as np
 import pytest
 
@@ -16,6 +17,7 @@ from pcb_inspection.engine.base import (
     MaskStrategy,
     PreparedReference,
 )
+from pcb_inspection.engine.classic import align as al
 from pcb_inspection.engine.classic.engine import ClassicEngine, map_test_bbox_to_ref
 from pcb_inspection.engine.geometry import BBox
 from pcb_inspection.engine.registry import available_engines, get_engine
@@ -190,3 +192,19 @@ def test_small_reference_is_not_upscaled(engine: ClassicEngine, scene: Scene) ->
     ref = engine.prepare_reference(scene.reference, MaskSpec(MaskStrategy.FULL_FRAME), 3000)
     assert ref.scale == 1.0
     assert ref.image.shape[1] == 1200
+
+
+def test_local_flow_correction_is_capped(scene: Scene) -> None:
+    """A large local flow is a false match (uniform IC body, identical leads): it must not bend the image.
+
+    The photo is the reference shifted down by 8 px; homography/ECC would fix that, the local flow alone may
+    pull it back by at most FLOW_MAX_PX.
+    """
+    ref = scene.reference
+    shifted = np.roll(ref, 8, axis=0)
+    out = al.refine_flow(ref, shifted)
+    g_ref = cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    g_out = cv2.cvtColor(out, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    (_, dy), _ = cv2.phaseCorrelate(g_ref, g_out)
+    assert abs(dy) >= 8 - al.FLOW_MAX_PX - 0.5  # corrected by no more than the cap
+    assert abs(dy) < 8  # but the small residual part is still corrected

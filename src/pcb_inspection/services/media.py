@@ -5,10 +5,15 @@ from __future__ import annotations
 import uuid
 from enum import StrEnum
 
+import cv2
+import numpy as np
+
+from pcb_inspection.db.models import Inspection
 from pcb_inspection.domain.errors import InvalidState, NotFound
 from pcb_inspection.engine import imaging
 from pcb_inspection.engine.crops import CropKind, make_crop
-from pcb_inspection.engine.geometry import BBox
+from pcb_inspection.engine.geometry import BBox, scale_matrix
+from pcb_inspection.engine.imaging import BGRImage
 from pcb_inspection.services import defects, inspections, references
 from pcb_inspection.services.context import ServiceContext
 from pcb_inspection.storage import BlobNotFound
@@ -47,7 +52,7 @@ def crop(
     pad: int,
     height: int,
 ) -> bytes:
-    cache_key = f"cache/crops/{defect_id}_{kind}_{pad}_{height}.jpg"
+    cache_key = f"cache/crops/v2/{defect_id}_{kind}_{pad}_{height}.jpg"
     try:
         return ctx.storage.get(cache_key)
     except BlobNotFound:
@@ -57,7 +62,9 @@ def crop(
     if insp.aligned_storage_key is None:
         raise InvalidState("inspection has no aligned image")
     ref = references.prepared(ctx, insp.reference)
-    aligned = imaging.decode(ctx.storage.get(insp.aligned_storage_key)).pixels
+    aligned = _photo_in_reference_frame(ctx, insp, ref.image.shape, ref.scale)
+    if aligned is None:
+        aligned = imaging.decode(ctx.storage.get(insp.aligned_storage_key)).pixels
     bbox_work = BBox(defect.ref_x, defect.ref_y, defect.ref_w, defect.ref_h).scaled(ref.scale)
     h, w = ref.image.shape[:2]
     clipped = bbox_work.clip(w, h) or BBox(0, 0, 1, 1)
@@ -66,3 +73,30 @@ def crop(
     data = imaging.encode_jpeg(img, 90)
     ctx.storage.put(cache_key, data, "image/jpeg")
     return data
+
+
+def _photo_in_reference_frame(
+    ctx: ServiceContext, insp: Inspection, shape: tuple[int, ...], ref_scale: float
+) -> BGRImage | None:
+    """The original photo brought into the reference frame by the board-wide transform only.
+
+    The stored aligned image also carries the local optical-flow correction; where the flow goes wrong
+    (uniform IC bodies, rows of identical leads) it bends edges that are straight on the photo. The
+    operator must see the board as photographed, so crops use the global transform (homography + ECC),
+    which keeps reference and photo in register without local warping.
+    """
+    if not insp.transform or "ref_to_test" not in insp.transform:
+        return None
+    ref_to_test = np.asarray(insp.transform["ref_to_test"], dtype=np.float64)
+    photo = imaging.decode(ctx.storage.get(insp.image.storage_key)).pixels
+    # working reference pixel -> uploaded reference pixel -> uploaded test pixel
+    work_to_test = ref_to_test @ scale_matrix(1 / ref_scale)
+    h, w = shape[:2]
+    warped = cv2.warpPerspective(
+        photo,
+        work_to_test,
+        (w, h),
+        flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP,
+        borderMode=cv2.BORDER_REPLICATE,
+    )
+    return np.asarray(warped, np.uint8)

@@ -8,6 +8,8 @@ from typing import Any
 import cv2
 import numpy as np
 
+from pcb_inspection.db.models import Inspection
+from pcb_inspection.engine import imaging
 from pcb_inspection.services import defects as defect_service
 from pcb_inspection.services.context import ServiceContext
 from tests.integration.conftest import Api
@@ -145,6 +147,23 @@ def test_crops(api: Api, ref_jpeg: bytes, defect_jpeg: bytes) -> None:
         api.request("GET", f"/api/v1/inspections/{insp['id']}/defects/{uuid.uuid4()}/crop").status_code == 404
     )
     assert api.request("GET", base, params={"height": 5}).status_code == 422
+
+
+def test_test_crop_comes_from_the_photo_not_the_flow_warped_image(
+    api: Api, ctx: ServiceContext, ref_jpeg: bytes, defect_jpeg: bytes
+) -> None:
+    """Optical flow can bend straight edges (uniform IC bodies, rows of leads): crops show the photo."""
+    _, insp = _inspected(api, ref_jpeg, defect_jpeg)
+    with ctx.db.session() as s:
+        key = s.get(Inspection, uuid.UUID(insp["id"])).aligned_storage_key
+    black = imaging.decode(ctx.storage.get(key)).pixels * 0
+    ctx.storage.put(key, imaging.encode_jpeg(black, 90), "image/jpeg")
+    d = insp["defects"][0]
+    base = f"/api/v1/inspections/{insp['id']}/defects/{d['id']}/crop"
+    test = cv2.imdecode(
+        np.frombuffer(api.request("GET", base, params={"kind": "test", "height": 100}).content, np.uint8), 1
+    )
+    assert test.mean() > 30  # the board, not the (blackened) aligned image
 
 
 def test_board_verdict(api: Api, ref_jpeg: bytes, clean_jpeg: bytes) -> None:

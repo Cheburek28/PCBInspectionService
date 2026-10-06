@@ -45,7 +45,7 @@ class _Timer:
 
 class ClassicEngine:
     name = "classic-diff"
-    version = "0.2.0"
+    version = "0.3.0"
 
     def prepare_reference(self, image: BGRImage, mask_spec: MaskSpec, work_width: int) -> PreparedReference:
         # never upscale: it adds no detail and would change the meaning of pixel-based thresholds
