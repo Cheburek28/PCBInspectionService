@@ -15,9 +15,12 @@ from pcb_inspection.engine.classic.detectors.common import (
     HAIR_FRAGMENT_MIN_LEN,
     HAIR_GAP,
     RIDGE_LOW,
+    SPECK_COARSE_SIGMA,
+    SPECK_INCOMPARABLE,
     SPECK_LOW,
     Finding,
     FloatMap,
+    to_lab,
 )
 from pcb_inspection.engine.classic.detectors.model import PoolMember, ReferenceModel
 from pcb_inspection.engine.classic.detectors.ridges import new_ridges, ridge_maps
@@ -34,14 +37,29 @@ def _debias(d: FloatMap, w: FloatMap, den: FloatMap) -> FloatMap:
 
 
 def detect_specks(
-    model: ReferenceModel, aligned_lab: FloatMap, pool: list[PoolMember], p: InspectParams
+    model: ReferenceModel, aligned: BGRImage, aligned_lab: FloatMap, pool: list[PoolMember], p: InspectParams
+) -> tuple[list[Finding], bool]:
+    """A compact difference on a flat area from every pool board. Returns the findings and whether the photo
+    was too different in sharpness from the reference for fine detail (then only coarse specks are kept)."""
+    found = _specks(model, aligned_lab, [model.lab] + [m.lab() for m in pool], p)
+    if len(found) <= SPECK_INCOMPARABLE:
+        return found, False
+
+    def coarse(img: BGRImage) -> FloatMap:
+        return to_lab(np.asarray(cv2.GaussianBlur(img, (0, 0), SPECK_COARSE_SIGMA), np.uint8))
+
+    others = [coarse(model.image)] + [coarse(m.aligned) for m in pool]
+    return _specks(model, coarse(aligned), others, p), True
+
+
+def _specks(
+    model: ReferenceModel, aligned_lab: FloatMap, others: list[FloatMap], p: InspectParams
 ) -> list[Finding]:
-    """A compact difference on a flat area from every pool board."""
     w = model.flat.astype(np.float32)
     den = np.asarray(cv2.GaussianBlur(w, (0, 0), 12), np.float32) + 1e-3
     dark = model.dark
     mag: FloatMap | None = None
-    for other in [model.lab] + [m.lab() for m in pool]:
+    for other in others:
         dd = _debias(aligned_lab - other, w, den)
         m = np.asarray(np.linalg.norm(dd, axis=2), np.float32)
         m[dark] = np.maximum(0, -dd[..., 0][dark])  # package tops: only darker spots

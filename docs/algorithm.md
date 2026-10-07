@@ -101,9 +101,9 @@ detectors measured on each photo is stored next to it (`inspections/{id}/measure
 
 | Detector | What it measures | Reported when |
 |---|---|---|
-| `solder` | dark quartile of lightness around every solder pad (≥ 500 px): the fillet's shadow | brighter than on every pool board by `solder_delta` (25) |
+| `solder` | dark quartile of lightness around every solder pad (≥ 500 px, compact — not a silkscreen line): the fillet's shadow | brighter than on every pool board by `solder_delta` (25) |
 | `shift` | position of every dark part body (template match, photo aligned by the board-wide transform only, ±12 px), relative to its 6 nearest parts | moved ≥ `shift_px` (4 px) from the pool median; parts whose position varies across the pool are skipped |
-| `speck` | Lab difference on flat areas of the reference (no edges, marking or bright metal), slow lighting removed | peak ≥ 30 and ≥ 20 px; on dark package tops only *darker* spots (lot marking varies), ≥ 40 and ≥ 40 px |
+| `speck` | Lab difference on flat areas of the reference (no edges, marking or bright metal), slow lighting removed | peak ≥ `speck_threshold` (35) and ≥ `speck_min_area` (60 px); on dark package tops only *darker* spots (lot marking varies), ≥ 40 and ≥ 40 px. More than 15 specks on a photo means the reference and the photo differ in sharpness: only coarse specks (both blurred, σ 2) are kept and hairs are skipped |
 | `hair` | thin lines (Hessian ridges, 3 scales) minus lines of the pool in the same place and direction (±30°) | fragments linked into a chain of ≥ 2 pieces, ≥ 35 px, and *bent* (straight new lines are part edges and traces) |
 
 Measured on a private set of production photos (one product, both sides, 98 photos of 49 boards, 24 defects
@@ -111,8 +111,8 @@ confirmed by the operator, 3000 px):
 
 | | engine 0.3.0 | 0.4.0 with all detectors |
 |---|---|---|
-| confirmed defects found | 4 / 24 | 19 / 24 |
-| regions per photo | 3.1 | 5.4 (≈ 2/3 of the extra specks are real residue the operator chose to see) |
+| confirmed defects found | 4 / 24 | 18 / 24 |
+| regions per photo | 3.1 | 4.2 |
 | time per photo, 4 CPUs, 2 inspections at once | 3.1 s | 5.0 s |
 
 Still missed: a 2 px rotation of a 0402 resistor (at 3000 px the signal is ~1 px), crumbs on the edge of a

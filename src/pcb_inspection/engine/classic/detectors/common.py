@@ -17,6 +17,8 @@ BoolMap = NDArray[np.bool_]
 
 # solder: a pad = bright neutral metal blob of the reference
 PAD_MIN_PX, PAD_MAX_PX = 120, 20000
+# white silkscreen lines are bright and neutral too: a pad is compact
+PAD_MAX_ASPECT, PAD_MAX_LEN = 8.0, 150
 # part bodies (shift): dark solid blobs, template-matched within +-SHIFT_SEARCH px
 BODY_CLOSE, BODY_MIN_AREA, BODY_MIN_DIM, BODY_MARGIN = 7, 100, 7, 5
 BODY_FILL, BODY_RING_METAL, BODY_UNIQUE = 0.55, 0.6, 0.02
@@ -24,6 +26,9 @@ SHIFT_SEARCH, SHIFT_NEIGHBOURS, SHIFT_UNSTABLE_PX, SHIFT_MIN_SCORE = 12, 6, 2.0,
 # specks: flat areas of the reference
 FLAT_GRAD, FLAT_AWAY, FLAT_MIN_ISLAND, BOARD_EDGE = 6.0, 3, 150, 8
 DARK_BODY_L, SPECK_LOW = 130, 10.0
+# more specks than this on one photo: reference and photo differ in sharpness (focus), edges of traces and
+# silkscreen show up as specks. Then only coarse specks are kept (both images blurred) and hairs are skipped.
+SPECK_INCOMPARABLE, SPECK_COARSE_SIGMA = 15, 2.0
 # hairs: thin lines (Hessian ridges) not present on the pool
 RIDGE_SCALES = (1.0, 1.5, 2.2)
 RIDGE_BINS, RIDGE_TOL, RIDGE_LOW = 6, 3, 10.0

@@ -53,8 +53,8 @@ class InspectParams:
     detect_shift: bool = False  # part body moved relative to its neighbours
     shift_px: float = 4.0
     detect_specks: bool = False  # specks, drops, crumbs on flat areas
-    speck_threshold: float = 30.0  # Lab distance
-    speck_min_area: int = 20
+    speck_threshold: float = 35.0  # Lab distance
+    speck_min_area: int = 60
     speck_body_threshold: float = 40.0  # on dark package tops (lot marking varies there)
     speck_body_min_area: int = 40
     detect_hairs: bool = False  # hairs and fibres

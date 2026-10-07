@@ -61,7 +61,8 @@ threads next to the difference map.
 | `PCBIS_DETECT_SHIFT` | false | part body moved relative to its neighbours |
 | `PCBIS_DETECT_SHIFT_PX` | 4.0 | minimum shift, working px |
 | `PCBIS_DETECT_SPECKS` | false | specks, drops, crumbs on flat areas |
-| `PCBIS_DETECT_SPECK_THRESHOLD` | 30.0 | Lab distance |
+| `PCBIS_DETECT_SPECK_THRESHOLD` | 35.0 | Lab distance |
+| `PCBIS_DETECT_SPECK_MIN_AREA` | 60 | working px |
 | `PCBIS_DETECT_HAIRS` | false | hairs and fibres |
 | `PCBIS_REFERENCE_POOL_SIZE` | 2 | passed boards used as extra references (0–5) |
 

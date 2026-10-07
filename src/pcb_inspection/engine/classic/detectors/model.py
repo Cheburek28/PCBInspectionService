@@ -20,6 +20,8 @@ from pcb_inspection.engine.classic.detectors.common import (
     FLAT_AWAY,
     FLAT_GRAD,
     FLAT_MIN_ISLAND,
+    PAD_MAX_ASPECT,
+    PAD_MAX_LEN,
     PAD_MAX_PX,
     PAD_MIN_PX,
     SHIFT_NEIGHBOURS,
@@ -134,6 +136,8 @@ def _pads(lab: FloatMap, mask: NDArray[np.uint8]) -> list[Pad]:
         if not PAD_MIN_PX <= area <= PAD_MAX_PX:
             continue
         x, y, bw, bh = (int(v) for v in st[i, :4])
+        if max(bw, bh) > PAD_MAX_LEN or max(bw, bh) > PAD_MAX_ASPECT * max(min(bw, bh), 1):
+            continue  # a silkscreen line, not a pad
         y0, y1, x0, x1 = max(y - 4, 0), min(y + bh + 4, h), max(x - 4, 0), min(x + bw + 4, w)
         # the pad plus its dark surroundings: a missing fillet makes the dark quartile brighter
         own = (lbl[y0:y1, x0:x1] == i).astype(np.uint8)

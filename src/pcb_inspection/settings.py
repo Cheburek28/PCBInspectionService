@@ -56,7 +56,8 @@ class Settings(BaseSettings):
     detect_shift: bool = False
     detect_shift_px: float = Field(default=4.0, gt=0)
     detect_specks: bool = False
-    detect_speck_threshold: float = Field(default=30.0, gt=0)
+    detect_speck_threshold: float = Field(default=35.0, gt=0)
+    detect_speck_min_area: int = Field(default=60, ge=1)
     detect_hairs: bool = False
     # passed boards of the same reference used as extra references by the detectors
     reference_pool_size: int = Field(default=2, ge=0, le=5)
@@ -89,6 +90,7 @@ class Settings(BaseSettings):
             shift_px=self.detect_shift_px,
             detect_specks=self.detect_specks,
             speck_threshold=self.detect_speck_threshold,
+            speck_min_area=self.detect_speck_min_area,
             detect_hairs=self.detect_hairs,
         )
 

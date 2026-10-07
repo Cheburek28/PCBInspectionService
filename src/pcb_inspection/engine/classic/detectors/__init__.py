@@ -72,7 +72,9 @@ class DetectorJob:
         )
         lab = to_lab(aligned)
         specks = (
-            _executor.submit(timed, "specks", detect_specks, model, lab, pool, p) if p.detect_specks else None
+            _executor.submit(timed, "specks", detect_specks, model, aligned, lab, pool, p)
+            if p.detect_specks
+            else None
         )
         findings: list[Finding] = []
         if p.detect_solder:
@@ -81,8 +83,13 @@ class DetectorJob:
         rel, score = timed("shift", shift_displacements, model, warped)
         if p.detect_shift:
             findings += detect_shift(model, rel, score, pool, p)
+        coarse = False
         if specks is not None:
-            findings += specks.result()
+            found, coarse = specks.result()
+            findings += found
         if hairs is not None:
-            findings += hairs.result()
-        return DetectorOutput(findings, {"shift_rel": rel.round(2).tolist()}, timings)
+            found_hairs = hairs.result()  # wait even if unused: the thread must not outlive the job
+            if not coarse:  # not comparable in fine detail: thin lines would be edges seen differently
+                findings += found_hairs
+        measures: dict[str, Any] = {"shift_rel": rel.round(2).tolist(), "coarse": coarse}
+        return DetectorOutput(findings, measures, timings)

@@ -33,6 +33,8 @@ def board(
     fillet: bool = True,
     dot: tuple[int, int] | None = None,
     line: bool = False,
+    dots: tuple[tuple[int, int], ...] = (),
+    silkscreen: bool = False,
 ) -> BGRImage:
     """Green board: one pad with a fillet shadow, 8 dark part bodies, a flat area on the right."""
     img = np.full((320, 480, 3), GREEN, np.uint8)
@@ -43,7 +45,11 @@ def board(
         dx, dy = (shift[1], shift[2]) if shift and shift[0] == i else (0, 0)
         cv2.rectangle(img, (x + dx, y + dy), (x + dx + 24, y + dy + 16), BODY, -1)
     if dot:
-        cv2.circle(img, dot, 4, (20, 20, 20), -1)
+        cv2.circle(img, dot, 6, (20, 20, 20), -1)
+    for d in dots:
+        cv2.circle(img, d, 6, (20, 20, 20), -1)
+    if silkscreen:
+        cv2.line(img, (100, 160), (440, 160), (235, 235, 235), 4)
     if line:
         cv2.line(img, (280, 110), (404, 110), (215, 215, 215), 1, cv2.LINE_AA)
     return np.asarray(cv2.GaussianBlur(img, (0, 0), 0.6), np.uint8)
@@ -70,7 +76,7 @@ def _all(
     return (
         detect_solder(model, lab, pool, ALL)
         + detect_shift(model, rel, score, pool, ALL)
-        + detect_specks(model, lab, pool, ALL)
+        + detect_specks(model, img, lab, pool, ALL)[0]
         + detect_hairs(model, img, pool, ALL)
     )
 
@@ -121,11 +127,40 @@ def test_part_moving_on_the_pool_boards_is_not_reported(model: det.ReferenceMode
 
 
 def test_speck_on_a_flat_area_is_found(model: det.ReferenceModel) -> None:
-    found = detect_specks(model, to_lab(board(dot=(150, 120))), [], ALL)
+    img = board(dot=(150, 120))
+    found, coarse = detect_specks(model, img, to_lab(img), [], ALL)
+    assert not coarse
     assert len(found) == 1
     b = found[0].bbox
     assert b.x <= 150 <= b.x + b.w
     assert b.y <= 120 <= b.y + b.h
+
+
+def test_silkscreen_line_is_not_a_pad() -> None:
+    ref = board(silkscreen=True)
+    model = det.build_reference_model(ref, np.ones(ref.shape[:2], np.uint8))
+    assert [p.box for p in model.pads] == [PAD]
+
+
+MANY = tuple((260 + 50 * (i % 5), (25, 85, 145, 295)[i // 5]) for i in range(20))
+
+
+def test_too_many_specks_mean_incomparable_sharpness_and_only_coarse_ones_are_kept(
+    model: det.ReferenceModel,
+) -> None:
+    img = board(dots=MANY)
+    found, coarse = detect_specks(model, img, to_lab(img), [], ALL)
+    assert coarse
+    assert len(found) <= len(MANY)
+
+
+def test_hairs_are_skipped_on_an_incomparable_photo(model: det.ReferenceModel) -> None:
+    img = board(dots=MANY)
+    out = det.DetectorJob(model, [], ALL).start(img, img).result()
+    assert out.measures["coarse"] is True
+    assert not [f for f in out.findings if f.kind == "hair"]
+    clean = det.DetectorJob(model, [], ALL).start(board(), board()).result()
+    assert clean.measures["coarse"] is False
 
 
 def test_straight_new_line_is_not_a_hair(model: det.ReferenceModel) -> None:
