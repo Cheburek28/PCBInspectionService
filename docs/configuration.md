@@ -49,6 +49,22 @@ Read by the container entrypoint only:
 | `PCBIS_ENGINE_BACKGROUND_SIGMA` | 20.0 | `background_sigma` |
 | `PCBIS_DEFAULT_MASK_STRATEGY` | `full_frame` | per reference (`mask_strategy`) |
 
+## Targeted detectors
+
+See [algorithm.md](algorithm.md#targeted-detectors-version-040). All are off by default; they run in background
+threads next to the difference map.
+
+| Variable | Default | |
+|---|---|---|
+| `PCBIS_DETECT_SOLDER` | false | missing solder fillet |
+| `PCBIS_DETECT_SOLDER_DELTA` | 25.0 | how much brighter (L) the fillet area must be than on every pool board |
+| `PCBIS_DETECT_SHIFT` | false | part body moved relative to its neighbours |
+| `PCBIS_DETECT_SHIFT_PX` | 4.0 | minimum shift, working px |
+| `PCBIS_DETECT_SPECKS` | false | specks, drops, crumbs on flat areas |
+| `PCBIS_DETECT_SPECK_THRESHOLD` | 30.0 | Lab distance |
+| `PCBIS_DETECT_HAIRS` | false | hairs and fibres |
+| `PCBIS_REFERENCE_POOL_SIZE` | 2 | passed boards used as extra references (0–5) |
+
 ## Quality gates
 
 | Variable | Default | Per request (`params`) |

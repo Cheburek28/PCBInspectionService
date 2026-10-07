@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import threading
 import time
-from collections.abc import Iterator
+from collections import OrderedDict
+from collections.abc import Iterator, Sequence
+from concurrent.futures import Future
 from contextlib import contextmanager
 
 import cv2
@@ -14,10 +17,12 @@ from pcb_inspection.engine.base import (
     EngineResult,
     InspectParams,
     MaskSpec,
+    PoolPhoto,
     PreparedReference,
     QualityMetrics,
 )
 from pcb_inspection.engine.classic import align as al
+from pcb_inspection.engine.classic import detectors as det
 from pcb_inspection.engine.classic import diff, quality
 from pcb_inspection.engine.classic.mask import build_mask
 from pcb_inspection.engine.geometry import BBox, Matrix, project_bbox, scale_matrix
@@ -28,6 +33,10 @@ SAME_IMAGE_MAD = 1.0
 # differing regions are excluded from the sharpness measurement with this margin (working pixels)
 SHARPNESS_PAD = 10
 FEATURE_MARGIN_KERNEL = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (121, 121))
+# a detector finding this close to a difference-map region is the same thing (working pixels)
+SAME_REGION_PAD = 3
+# pool photos kept decoded with their derived maps (~100 MB each at 3000 px)
+POOL_CACHE_SIZE = 4
 
 
 class _Timer:
@@ -45,7 +54,11 @@ class _Timer:
 
 class ClassicEngine:
     name = "classic-diff"
-    version = "0.3.0"
+    version = "0.4.0"
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._pool_cache: OrderedDict[str, det.PoolMember] = OrderedDict()
 
     def prepare_reference(self, image: BGRImage, mask_spec: MaskSpec, work_width: int) -> PreparedReference:
         # never upscale: it adds no detail and would change the meaning of pixel-based thresholds
@@ -71,7 +84,38 @@ class ClassicEngine:
         ref.features = features
         return features
 
-    def inspect(self, ref: PreparedReference, test: BGRImage, params: InspectParams) -> EngineResult:
+    def _detector_model(self, ref: PreparedReference) -> det.ReferenceModel:
+        with self._lock:
+            if not isinstance(ref.detector_model, det.ReferenceModel):
+                ref.detector_model = det.build_reference_model(ref.image, ref.mask)
+            return ref.detector_model
+
+    def _pool_members(self, ref: PreparedReference, pool: Sequence[PoolPhoto]) -> list[det.PoolMember]:
+        out = []
+        for photo in pool:
+            with self._lock:
+                member = self._pool_cache.get(photo.key)
+            if member is None:
+                aligned = photo.load()
+                if aligned.shape != ref.image.shape:
+                    continue  # aligned to another reference size: not comparable
+                rel = (photo.measures or {}).get("shift_rel")
+                member = det.PoolMember(aligned, np.asarray(rel, np.float64) if rel is not None else None)
+            with self._lock:
+                self._pool_cache[photo.key] = member
+                self._pool_cache.move_to_end(photo.key)
+                while len(self._pool_cache) > POOL_CACHE_SIZE:
+                    self._pool_cache.popitem(last=False)
+            out.append(member)
+        return out
+
+    def inspect(
+        self,
+        ref: PreparedReference,
+        test: BGRImage,
+        params: InspectParams,
+        pool: Sequence[PoolPhoto] = (),
+    ) -> EngineResult:
         timer = _Timer()
         with timer.stage("resize"):
             test_work, test_scale = resize_to_width(test, ref.image.shape[1])
@@ -97,6 +141,12 @@ class ClassicEngine:
         with timer.stage("refine"):
             compared = quality.color_match(raw, ref.image, ref.mask) if params.color_match else raw
             compared = al.refine_flow(ref.image, compared)
+        pending: Future[det.DetectorOutput] | None = None
+        if det.enabled(params):
+            with timer.stage("detectors_prepare"):
+                job = det.DetectorJob(self._detector_model(ref), self._pool_members(ref, pool), params)
+            # runs in background threads while the difference map is computed below
+            pending = job.start(raw, compared)
         with timer.stage("diff"):
             if same:
                 dmap = np.zeros(ref.image.shape[:2], np.float32)
@@ -116,13 +166,28 @@ class ClassicEngine:
         differences = self._to_uploaded(regions, ref, ref_to_test_up, (test.shape[1], test.shape[0]))
         with timer.stage("render"):
             heatmap = diff.colorize(heat, compared, ref.mask, params.threshold)
+        measures = None
+        n_diff = len(differences)  # quality gates judge the difference map only
+        if pending is not None:
+            with timer.stage("detectors_wait"):
+                out = pending.result()
+            timer.ms |= {f"det_{k}": v for k, v in out.timings_ms.items()}
+            measures = out.measures
+            new = _new_findings(out.findings, [r.bbox for r in regions])
+            differences += self._to_uploaded(
+                [diff.Region(bbox=f.bbox, area=f.bbox.w * f.bbox.h, score=f.score) for f in new],
+                ref,
+                ref_to_test_up,
+                (test.shape[1], test.shape[0]),
+                [f.kind for f in new],
+            )
         mask_px = max(int(ref.mask.sum()), 1)
         metrics = QualityMetrics(
             alignment_inliers=alignment.inliers,
             alignment_ok=True,
             sharpness_ratio=round(sharp_ratio, 3),
             lab_shift=shift,
-            differences_count=len(differences),
+            differences_count=n_diff,
             differences_area_ratio=round(sum(r.area for r in regions) / mask_px, 5),
             same_as_reference=same,
         )
@@ -134,6 +199,7 @@ class ClassicEngine:
             aligned=compared,
             heatmap=heatmap,
             timings_ms=timer.ms,
+            measures=measures,
         )
 
     @staticmethod
@@ -169,20 +235,42 @@ class ClassicEngine:
         ref: PreparedReference,
         ref_to_test_up: Matrix,
         test_size: tuple[int, int],
+        kinds: Sequence[str] | None = None,
     ) -> list[Difference]:
         out = []
         ref_w, ref_h = ref.original_size
-        for region in regions:
+        for i, region in enumerate(regions):
             bbox_ref = region.bbox.scaled(1 / ref.scale).clip(ref_w, ref_h)
             if bbox_ref is None:
                 continue
             bbox_test = project_bbox(ref_to_test_up, bbox_ref).clip(*test_size)
             if bbox_test is None:
                 continue  # region falls outside the test photo
+            kind = kinds[i] if kinds is not None else "diff"
             out.append(
-                Difference(bbox_ref=bbox_ref, bbox_test=bbox_test, score=region.score, area=region.area)
+                Difference(
+                    bbox_ref=bbox_ref, bbox_test=bbox_test, score=region.score, area=region.area, kind=kind
+                )
             )
         return out
+
+
+def _new_findings(findings: list[det.Finding], shown: list[BBox]) -> list[det.Finding]:
+    """Drop findings that touch an already reported box (difference map or an earlier finding)."""
+    boxes = list(shown)
+    out = []
+    for f in findings:
+        if any(_touch(f.bbox, b) for b in boxes):
+            continue
+        boxes.append(f.bbox)
+        out.append(f)
+    return out
+
+
+def _touch(a: BBox, b: BBox, pad: int = SAME_REGION_PAD) -> bool:
+    return not (
+        a.x + a.w + pad < b.x or b.x + b.w + pad < a.x or a.y + a.h + pad < b.y or b.y + b.h + pad < a.y
+    )
 
 
 def map_test_bbox_to_ref(ref_to_test: Matrix, bbox_test: BBox, ref_size: tuple[int, int]) -> BBox | None:

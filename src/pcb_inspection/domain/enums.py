@@ -33,6 +33,16 @@ class DefectSource(StrEnum):
     MANUAL = "manual"
 
 
+class Detector(StrEnum):
+    """What produced an automatic region."""
+
+    DIFF = "diff"  # difference map against the reference
+    SOLDER = "solder"  # missing solder fillet
+    SHIFT = "shift"  # part body moved relative to its neighbours
+    SPECK = "speck"  # speck, drop or crumb on a flat area
+    HAIR = "hair"  # hair or fibre
+
+
 class Verdict(StrEnum):
     PENDING = "pending"
     ACCEPTED = "accepted"

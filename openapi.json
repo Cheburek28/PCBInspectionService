@@ -1906,6 +1906,17 @@
           "source": {
             "$ref": "#/components/schemas/DefectSource"
           },
+          "detector": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Detector"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What found an automatic region (diff = difference map); null for manual ones."
+          },
           "rank": {
             "type": "integer",
             "title": "Rank"
@@ -2032,6 +2043,18 @@
           "other"
         ],
         "title": "DefectType"
+      },
+      "Detector": {
+        "type": "string",
+        "enum": [
+          "diff",
+          "solder",
+          "shift",
+          "speck",
+          "hair"
+        ],
+        "title": "Detector",
+        "description": "What produced an automatic region."
       },
       "ErrorOut": {
         "properties": {

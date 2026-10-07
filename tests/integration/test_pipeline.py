@@ -67,7 +67,7 @@ def test_engine_error_fails(
 ) -> None:
     iid = _queued(queued_api, ref_jpeg, clean_jpeg)
 
-    def boom(ref: PreparedReference, test: object, params: InspectParams) -> EngineResult:
+    def boom(ref: PreparedReference, test: object, params: InspectParams, pool: object = ()) -> EngineResult:
         raise ValueError("synthetic engine failure")
 
     monkeypatch.setattr(queued_ctx.engine, "inspect", boom)

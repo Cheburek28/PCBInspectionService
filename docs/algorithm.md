@@ -84,6 +84,40 @@ reference, 10 known-good boards and boards with known defects; two different ref
 Trade-off: glare suppression lowers the score of small *bright* defects (a solder blob) by ~20 %, and markings
 with strokes thicker than the opening diameter (~9 px) are only partly suppressed.
 
+## Targeted detectors (version 0.4.0)
+
+The difference map is tuned to stay quiet on good boards, so it misses defects that look like normal variation:
+a missing solder fillet, a part moved by a few pixels, a hair. Four targeted detectors run next to it, each
+enabled separately (`PCBIS_DETECT_*`, all off by default). Their regions carry `detector` = `solder`, `shift`,
+`speck` or `hair`; difference-map regions have `diff`. A finding that touches a difference-map region is not
+repeated. Quality gates judge the difference map only.
+
+**Reference pool.** A detector reports a finding only if it differs from *every* member of the pool: the reference
+plus the first `PCBIS_REFERENCE_POOL_SIZE` (2) boards of the same reference that the operator passed (board verdict
+`pass`) with no region confirmed as a defect. They join the pool after their own inspection, so the detectors work
+from the first board and get quieter after two passed boards. Pool photos are the stored aligned photos; what the
+detectors measured on each photo is stored next to it (`inspections/{id}/measures.json`). See
+[ADR 0011](adr/0011-reference-pool.md).
+
+| Detector | What it measures | Reported when |
+|---|---|---|
+| `solder` | dark quartile of lightness around every solder pad (≥ 500 px): the fillet's shadow | brighter than on every pool board by `solder_delta` (25) |
+| `shift` | position of every dark part body (template match, photo aligned by the board-wide transform only, ±12 px), relative to its 6 nearest parts | moved ≥ `shift_px` (4 px) from the pool median; parts whose position varies across the pool are skipped |
+| `speck` | Lab difference on flat areas of the reference (no edges, marking or bright metal), slow lighting removed | peak ≥ 30 and ≥ 20 px; on dark package tops only *darker* spots (lot marking varies), ≥ 40 and ≥ 40 px |
+| `hair` | thin lines (Hessian ridges, 3 scales) minus lines of the pool in the same place and direction (±30°) | fragments linked into a chain of ≥ 2 pieces, ≥ 35 px, and *bent* (straight new lines are part edges and traces) |
+
+Measured on a private set of production photos (one product, both sides, 98 photos of 49 boards, 24 defects
+confirmed by the operator, 3000 px):
+
+| | engine 0.3.0 | 0.4.0 with all detectors |
+|---|---|---|
+| confirmed defects found | 4 / 24 | 19 / 24 |
+| regions per photo | 3.1 | 5.4 (≈ 2/3 of the extra specks are real residue the operator chose to see) |
+| time per photo, 4 CPUs, 2 inspections at once | 3.1 s | 5.0 s |
+
+Still missed: a 2 px rotation of a 0402 resistor (at 3000 px the signal is ~1 px), crumbs on the edge of a
+tantalum capacitor, hairs shorter than ~35 px.
+
 ## Performance
 
 ≈ 2 s per side at 3000×2000 on a 20-core workstation, 5–10 s expected on a 4 vCPU VPS. Peak memory

@@ -50,6 +50,16 @@ class Settings(BaseSettings):
     engine_open_radius: int = Field(default=4, ge=0)
     engine_background_sigma: float = Field(default=20.0, ge=0)
     default_mask_strategy: MaskStrategy = MaskStrategy.FULL_FRAME
+    # targeted detectors next to the difference map (see docs/algorithm.md); off by default
+    detect_solder: bool = False
+    detect_solder_delta: float = Field(default=25.0, ge=0)
+    detect_shift: bool = False
+    detect_shift_px: float = Field(default=4.0, gt=0)
+    detect_specks: bool = False
+    detect_speck_threshold: float = Field(default=30.0, gt=0)
+    detect_hairs: bool = False
+    # passed boards of the same reference used as extra references by the detectors
+    reference_pool_size: int = Field(default=2, ge=0, le=5)
 
     gate_min_width: int = 1500
     gate_min_inliers: int = 50
@@ -73,6 +83,13 @@ class Settings(BaseSettings):
             highlight_clip=self.engine_highlight_clip,
             open_radius=self.engine_open_radius,
             background_sigma=self.engine_background_sigma,
+            detect_solder=self.detect_solder,
+            solder_delta=self.detect_solder_delta,
+            detect_shift=self.detect_shift,
+            shift_px=self.detect_shift_px,
+            detect_specks=self.detect_specks,
+            speck_threshold=self.detect_speck_threshold,
+            detect_hairs=self.detect_hairs,
         )
 
     def thresholds(self) -> QualityThresholds:

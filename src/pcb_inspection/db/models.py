@@ -190,6 +190,7 @@ class Defect(Base):
     id: Mapped[uuid.UUID] = _pk()
     inspection_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("inspections.id"), index=True)
     source: Mapped[str] = mapped_column(String(8))
+    detector: Mapped[str | None] = mapped_column(String(16))  # automatic regions only
     rank: Mapped[int] = mapped_column(Integer)
     score: Mapped[float | None] = mapped_column(Float)
     area: Mapped[int | None] = mapped_column(Integer)

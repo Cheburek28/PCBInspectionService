@@ -13,6 +13,7 @@ from pcb_inspection.domain.enums import (
     BoardVerdict,
     DefectSource,
     DefectType,
+    Detector,
     InspectionStatus,
     RejectionCode,
     SessionStatus,
@@ -156,6 +157,9 @@ class ReferenceOut(_Model):
 class DefectOut(_Model):
     id: uuid.UUID
     source: DefectSource
+    detector: Detector | None = Field(
+        None, description="What found an automatic region (diff = difference map); null for manual ones."
+    )
     rank: int
     score: float | None
     area: int | None
@@ -173,6 +177,7 @@ class DefectOut(_Model):
         return cls(
             id=d.id,
             source=DefectSource(d.source),
+            detector=Detector(d.detector) if d.detector else None,
             rank=d.rank,
             score=d.score,
             area=d.area,

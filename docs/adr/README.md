@@ -12,5 +12,6 @@
 | 0008 | [References belong to a session](0008-session-scoped-references.md) | accepted |
 | 0009 | [Pluggable engines, versioned results](0009-engine-interface-and-versioning.md) | accepted |
 | 0010 | [Synchronous SQLAlchemy in API and worker](0010-sync-sqlalchemy.md) | accepted |
+| 0011 | [Passed boards of a batch extend the reference](0011-reference-pool.md) | accepted |
 
 New decision: copy the latest file, increment the number, describe context, decision, consequences.

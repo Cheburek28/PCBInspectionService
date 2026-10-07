@@ -112,13 +112,19 @@ Example (shortened):
     "id": "…", "source": "auto", "rank": 1, "score": 57.8, "area": 944,
     "bbox_test": {"x": 2541, "y": 1003, "w": 22, "h": 61},
     "bbox_ref":  {"x": 2549, "y": 999,  "w": 21, "h": 60},
+    "detector": "diff",
     "verdict": "pending", "defect_type": null,
     "crop_url": "/api/v1/inspections/…/defects/…/crop?kind=pair"
   }],
-  "algorithm": {"name": "classic-diff", "version": "0.1.0", "params": {"engine": {…}, "gates": {…}}},
+  "algorithm": {"name": "classic-diff", "version": "0.4.0", "params": {"engine": {…}, "gates": {…}}},
   "timings_ms": {"queue": 140, "align": 1450, "diff": 420, "total": 2190}
 }
 ```
+
+`detector` says what produced an automatic region: `diff` (difference map), `solder` (missing fillet), `shift`
+(moved part), `speck` (speck, drop, crumb) or `hair`; it is `null` for regions the operator added. The targeted
+detectors are enabled on the server ([configuration.md](configuration.md#targeted-detectors)); clients that do
+not know the field can ignore it.
 
 ### 5. Images and crops
 

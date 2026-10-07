@@ -20,7 +20,7 @@ from pcb_inspection.domain import gates
 from pcb_inspection.domain.enums import DefectSource, InspectionStatus, Stage, Verdict
 from pcb_inspection.engine import imaging
 from pcb_inspection.engine.base import EngineResult
-from pcb_inspection.services import images, references
+from pcb_inspection.services import images, pool, references
 from pcb_inspection.services.context import ServiceContext
 from pcb_inspection.services.inspections import now, queue_wait_ms
 from pcb_inspection.services.params import engine_params, gate_thresholds
@@ -90,8 +90,9 @@ def _analyze_and_save(ctx: ServiceContext, insp: Inspection) -> InspectionStatus
         return _save(ctx, insp.id, None, size_rejection)
     _set_stage(ctx, insp.id, Stage.ANALYZE)
     prepared = references.prepared(ctx, insp.reference)
+    params = engine_params(insp.params)
     try:
-        result = ctx.engine.inspect(prepared, test.pixels, engine_params(insp.params))
+        result = ctx.engine.inspect(prepared, test.pixels, params, pool.pool_for(ctx, insp, params))
     except (cv2.error, ValueError) as exc:
         raise AnalysisError(f"engine failed: {exc}") from exc
     rejection = gates.evaluate(result.quality, thresholds)
@@ -112,6 +113,8 @@ def _save(
     if result is not None and result.heatmap is not None:
         heatmap_key = f"inspections/{inspection_id}/heatmap.jpg"
         ctx.storage.put(heatmap_key, imaging.encode_jpeg(result.heatmap, 85), "image/jpeg")
+    if result is not None and result.measures is not None:
+        pool.save_measures(ctx, inspection_id, result.measures)
     status = InspectionStatus.REJECTED if rejection else InspectionStatus.COMPLETED
     with ctx.db.session() as s:
         insp = s.get(Inspection, inspection_id)
@@ -136,6 +139,7 @@ def _save(
                     Defect(
                         inspection_id=inspection_id,
                         source=DefectSource.AUTO,
+                        detector=d.kind,
                         rank=rank,
                         score=d.score,
                         area=d.area,

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 from numpy.typing import NDArray
@@ -45,6 +46,21 @@ class InspectParams:
     highlight_clip: int = 100  # lightness above this is treated as equal (glare on solder); 255 = off
     open_radius: int = 4  # morphological opening removes thin bright strokes (markings); 0 = off
     background_sigma: float = 20.0  # subtract local mean lightness (body tone, uneven light); 0 = off
+    # targeted detectors (classic.detectors), compared with the reference pool; all off by default
+    detect_solder: bool = False  # missing solder fillet
+    solder_delta: float = 25.0  # dark quartile of a pad brighter than every pool board by more than this (L)
+    solder_min_pad_px: int = 500
+    detect_shift: bool = False  # part body moved relative to its neighbours
+    shift_px: float = 4.0
+    detect_specks: bool = False  # specks, drops, crumbs on flat areas
+    speck_threshold: float = 30.0  # Lab distance
+    speck_min_area: int = 20
+    speck_body_threshold: float = 40.0  # on dark package tops (lot marking varies there)
+    speck_body_min_area: int = 40
+    detect_hairs: bool = False  # hairs and fibres
+    hair_peak: float = 55.0
+    hair_min_length: float = 35.0
+    hair_min_fragments: int = 2
 
 
 @dataclass(slots=True)
@@ -57,10 +73,20 @@ class PreparedReference:
     original_size: tuple[int, int]  # (width, height) of the uploaded image
     mask_spec: MaskSpec
     features: object | None = None  # engine-specific cache (e.g. SIFT keypoints)
+    detector_model: object | None = None  # engine-specific cache for targeted detectors
 
     @property
     def mask_coverage(self) -> float:
         return float(self.mask.mean())
+
+
+@dataclass(frozen=True, slots=True)
+class PoolPhoto:
+    """A passed board of the same reference: its aligned photo (working resolution) and stored measures."""
+
+    key: str  # stable id (cache key): the photo is loaded only when the engine has not cached it
+    load: Callable[[], BGRImage]  # aligned photo at working resolution
+    measures: dict[str, Any] | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +108,7 @@ class Difference:
     bbox_test: BBox
     score: float
     area: int  # pixels at working resolution
+    kind: str = "diff"  # diff = difference map; solder | shift | speck | hair = targeted detectors
 
 
 @dataclass(slots=True)
@@ -93,6 +120,8 @@ class EngineResult:
     aligned: BGRImage | None  # test warped into the reference frame, working resolution
     heatmap: NDArray[np.uint8] | None  # colorized difference map, working resolution
     timings_ms: dict[str, int] = field(default_factory=dict)
+    # per-photo measurements kept with the inspection; needed when this photo becomes a pool member
+    measures: dict[str, Any] | None = None
 
 
 class Engine(Protocol):
@@ -103,4 +132,12 @@ class Engine(Protocol):
         """Raises MaskNotFoundError when the board area cannot be found."""
         ...
 
-    def inspect(self, ref: PreparedReference, test: BGRImage, params: InspectParams) -> EngineResult: ...
+    def inspect(
+        self,
+        ref: PreparedReference,
+        test: BGRImage,
+        params: InspectParams,
+        pool: Sequence[PoolPhoto] = (),
+    ) -> EngineResult:
+        """``pool``: passed boards of the same reference, compared against by the targeted detectors."""
+        ...
