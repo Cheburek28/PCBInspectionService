@@ -1,6 +1,6 @@
 [project]
 name = "pcb-inspection-service"
-version = "0.1.0"
+version = "0.2.0"
 description = "Compare a PCB photo with a reference photo, report differences and collect operator feedback as a training dataset."
 readme = "README.md"
 license = "Apache-2.0"
