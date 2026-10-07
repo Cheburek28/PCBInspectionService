@@ -6,7 +6,7 @@ import uuid
 
 from pcb_inspection.db.models import Inspection
 from pcb_inspection.engine.base import InspectParams
-from pcb_inspection.services import pool
+from pcb_inspection.services import pool, references
 from pcb_inspection.services.context import ServiceContext
 from tests.integration.conftest import Api
 
@@ -70,7 +70,7 @@ def test_pool_is_the_first_passed_boards_without_confirmed_defects(
     with ctx.db.session() as db:
         row = db.get(Inspection, uuid.UUID(current["id"]))
         assert row is not None
-    photos = pool.pool_for(ctx, row, params)
+    photos = pool.pool_for(ctx, row, params, references.prepared(ctx, row.reference))
     assert [p.key for p in photos] == [passed["id"]]
     assert photos[0].measures is not None
     assert "shift_rel" in photos[0].measures
@@ -80,7 +80,7 @@ def test_pool_is_the_first_passed_boards_without_confirmed_defects(
     with ctx.db.session() as db:
         first = db.get(Inspection, uuid.UUID(passed["id"]))
         assert first is not None
-    assert pool.pool_for(ctx, first, params) == []
+    assert pool.pool_for(ctx, first, params, references.prepared(ctx, first.reference)) == []
     assert failed["id"] not in [p.key for p in photos]
 
 
@@ -94,4 +94,25 @@ def test_pool_is_empty_when_detectors_are_off(
     with ctx.db.session() as db:
         row = db.get(Inspection, uuid.UUID(current["id"]))
         assert row is not None
-    assert pool.pool_for(ctx, row, ctx.settings.inspect_params()) == []
+    params = ctx.settings.inspect_params()
+    assert pool.pool_for(ctx, row, params, references.prepared(ctx, row.reference)) == []
+
+
+def test_pool_member_inspected_before_the_detectors_is_measured_from_its_photo(
+    api: Api, ctx: ServiceContext, ref_jpeg: bytes, clean_jpeg: bytes
+) -> None:
+    params = _enable(ctx)
+    s = api.create_session()
+    api.upload_reference(s["id"], ref_jpeg)
+    old = _board(api, s["id"], "old", clean_jpeg, verdict="pass")
+    ctx.storage.delete(pool.measures_key(uuid.UUID(old["id"])))  # as if inspected by engine 0.3.0
+    current = _board(api, s["id"], "current", clean_jpeg)
+    with ctx.db.session() as db:
+        row = db.get(Inspection, uuid.UUID(current["id"]))
+        assert row is not None
+    prepared = references.prepared(ctx, row.reference)
+    photos = pool.pool_for(ctx, row, params, prepared)
+    assert [p.key for p in photos] == [old["id"]]
+    assert photos[0].measures is None
+    assert photos[0].load_warped is not None
+    assert photos[0].load_warped().shape == prepared.image.shape

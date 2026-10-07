@@ -90,7 +90,9 @@ class ClassicEngine:
                 ref.detector_model = det.build_reference_model(ref.image, ref.mask)
             return ref.detector_model
 
-    def _pool_members(self, ref: PreparedReference, pool: Sequence[PoolPhoto]) -> list[det.PoolMember]:
+    def _pool_members(
+        self, ref: PreparedReference, model: det.ReferenceModel, pool: Sequence[PoolPhoto]
+    ) -> list[det.PoolMember]:
         out = []
         for photo in pool:
             with self._lock:
@@ -100,7 +102,12 @@ class ClassicEngine:
                 if aligned.shape != ref.image.shape:
                     continue  # aligned to another reference size: not comparable
                 rel = (photo.measures or {}).get("shift_rel")
-                member = det.PoolMember(aligned, np.asarray(rel, np.float64) if rel is not None else None)
+                shift_rel = np.asarray(rel, np.float64) if rel is not None else None
+                if shift_rel is None and photo.load_warped is not None:
+                    warped = photo.load_warped()
+                    if warped.shape == ref.image.shape:
+                        shift_rel = det.shift_displacements(model, warped)[0]
+                member = det.PoolMember(aligned, shift_rel)
             with self._lock:
                 self._pool_cache[photo.key] = member
                 self._pool_cache.move_to_end(photo.key)
@@ -144,7 +151,8 @@ class ClassicEngine:
         pending: Future[det.DetectorOutput] | None = None
         if det.enabled(params):
             with timer.stage("detectors_prepare"):
-                job = det.DetectorJob(self._detector_model(ref), self._pool_members(ref, pool), params)
+                model = self._detector_model(ref)
+                job = det.DetectorJob(model, self._pool_members(ref, model, pool), params)
             # runs in background threads while the difference map is computed below
             pending = job.start(raw, compared)
         with timer.stage("diff"):

@@ -17,9 +17,10 @@ from sqlalchemy import select
 from pcb_inspection.db.models import Board, Defect, Inspection
 from pcb_inspection.domain.enums import BoardVerdict, InspectionStatus, Verdict
 from pcb_inspection.engine import imaging
-from pcb_inspection.engine.base import InspectParams, PoolPhoto
+from pcb_inspection.engine.base import InspectParams, PoolPhoto, PreparedReference
 from pcb_inspection.engine.imaging import BGRImage
 from pcb_inspection.services.context import ServiceContext
+from pcb_inspection.services.media import photo_in_reference_frame
 from pcb_inspection.storage import BlobStorage
 
 
@@ -35,7 +36,9 @@ def detectors_enabled(p: InspectParams) -> bool:
     return p.detect_solder or p.detect_shift or p.detect_specks or p.detect_hairs
 
 
-def pool_for(ctx: ServiceContext, insp: Inspection, params: InspectParams) -> list[PoolPhoto]:
+def pool_for(
+    ctx: ServiceContext, insp: Inspection, params: InspectParams, ref: PreparedReference
+) -> list[PoolPhoto]:
     size = ctx.settings.reference_pool_size
     if size == 0 or not detectors_enabled(params):
         return []
@@ -45,8 +48,8 @@ def pool_for(ctx: ServiceContext, insp: Inspection, params: InspectParams) -> li
         .exists()
     )
     with ctx.db.session() as s:
-        rows = s.execute(
-            select(Inspection.id, Inspection.aligned_storage_key)
+        rows = s.scalars(
+            select(Inspection)
             .join(Board, Board.id == Inspection.board_id)
             .where(
                 Inspection.session_id == insp.session_id,
@@ -64,14 +67,30 @@ def pool_for(ctx: ServiceContext, insp: Inspection, params: InspectParams) -> li
             .limit(size)
         ).all()
     return [
-        PoolPhoto(str(iid), _loader(ctx.storage, key), _measures(ctx.storage, iid))
-        for iid, key in rows
-        if key is not None
+        PoolPhoto(
+            str(row.id),
+            _loader(ctx.storage, row.aligned_storage_key),
+            measures,
+            None if measures is not None else _warped_loader(ctx, row, ref),
+        )
+        for row in rows
+        if row.aligned_storage_key is not None
+        for measures in [_measures(ctx.storage, row.id)]
     ]
 
 
 def _loader(storage: BlobStorage, key: str) -> Callable[[], BGRImage]:
     return lambda: imaging.decode(storage.get(key)).pixels
+
+
+def _warped_loader(ctx: ServiceContext, insp: Inspection, ref: PreparedReference) -> Callable[[], BGRImage]:
+    def load() -> BGRImage:
+        warped = photo_in_reference_frame(ctx, insp, ref.image.shape, ref.scale)
+        if warped is None:
+            raise ValueError(f"inspection {insp.id} has no alignment transform")
+        return warped
+
+    return load
 
 
 def _measures(storage: BlobStorage, inspection_id: uuid.UUID) -> dict[str, Any] | None:

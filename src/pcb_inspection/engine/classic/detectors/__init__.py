@@ -32,6 +32,7 @@ __all__ = [
     "PoolMember",
     "ReferenceModel",
     "build_reference_model",
+    "shift_displacements",
 ]
 
 # per process; an inspection uses up to 3 (the job itself, specks, hairs) next to the engine's own thread

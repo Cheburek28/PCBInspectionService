@@ -92,7 +92,7 @@ def _analyze_and_save(ctx: ServiceContext, insp: Inspection) -> InspectionStatus
     prepared = references.prepared(ctx, insp.reference)
     params = engine_params(insp.params)
     try:
-        result = ctx.engine.inspect(prepared, test.pixels, params, pool.pool_for(ctx, insp, params))
+        result = ctx.engine.inspect(prepared, test.pixels, params, pool.pool_for(ctx, insp, params, prepared))
     except (cv2.error, ValueError) as exc:
         raise AnalysisError(f"engine failed: {exc}") from exc
     rejection = gates.evaluate(result.quality, thresholds)

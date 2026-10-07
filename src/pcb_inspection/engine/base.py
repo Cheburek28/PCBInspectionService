@@ -87,6 +87,9 @@ class PoolPhoto:
     key: str  # stable id (cache key): the photo is loaded only when the engine has not cached it
     load: Callable[[], BGRImage]  # aligned photo at working resolution
     measures: dict[str, Any] | None
+    # the photo in the reference frame by the board-wide transform only (no local flow); used to measure
+    # what an older inspection did not store
+    load_warped: Callable[[], BGRImage] | None = None
 
 
 @dataclass(frozen=True, slots=True)

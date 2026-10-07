@@ -179,6 +179,25 @@ def test_engine_runs_detectors_with_a_pool_and_returns_measures(scene: Scene, en
         assert r.quality.differences_count == sum(d.kind == "diff" for d in r.differences)
 
 
+def test_pool_member_without_measures_is_measured_from_its_warped_photo(
+    scene: Scene, engine: ClassicEngine
+) -> None:
+    prepared = engine.prepare_reference(scene.reference, MaskSpec(MaskStrategy.FULL_FRAME), WORK_WIDTH)
+    params = InspectParams(work_width=WORK_WIDTH, detect_shift=True)
+    first = engine.inspect(prepared, scene.photo()[0], params)
+    assert first.aligned is not None
+    aligned = first.aligned
+    warped: list[int] = []
+
+    def load_warped() -> BGRImage:
+        warped.append(1)
+        return aligned
+
+    pool = [PoolPhoto("old", lambda: aligned, None, load_warped)]
+    engine.inspect(prepared, scene.photo(seed=5)[0], params, pool)
+    assert warped == [1]
+
+
 def test_detectors_are_off_by_default(scene: Scene, engine: ClassicEngine, prepared: object) -> None:
     r = engine.inspect(prepared, scene.photo()[0], InspectParams(work_width=WORK_WIDTH))  # type: ignore[arg-type]
     assert r.measures is None

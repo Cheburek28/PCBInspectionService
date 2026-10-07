@@ -62,7 +62,7 @@ def crop(
     if insp.aligned_storage_key is None:
         raise InvalidState("inspection has no aligned image")
     ref = references.prepared(ctx, insp.reference)
-    aligned = _photo_in_reference_frame(ctx, insp, ref.image.shape, ref.scale)
+    aligned = photo_in_reference_frame(ctx, insp, ref.image.shape, ref.scale)
     if aligned is None:
         aligned = imaging.decode(ctx.storage.get(insp.aligned_storage_key)).pixels
     bbox_work = BBox(defect.ref_x, defect.ref_y, defect.ref_w, defect.ref_h).scaled(ref.scale)
@@ -75,7 +75,7 @@ def crop(
     return data
 
 
-def _photo_in_reference_frame(
+def photo_in_reference_frame(
     ctx: ServiceContext, insp: Inspection, shape: tuple[int, ...], ref_scale: float
 ) -> BGRImage | None:
     """The original photo brought into the reference frame by the board-wide transform only.
